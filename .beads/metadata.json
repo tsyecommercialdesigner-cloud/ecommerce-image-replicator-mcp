@@ -1,0 +1,7 @@
+{
+  "database": "dolt",
+  "backend": "dolt",
+  "dolt_mode": "embedded",
+  "dolt_database": "ecommerce_image_replicator",
+  "project_id": "1fcee89f-004b-41e5-aad6-ddeffc3d7ee3"
+}
