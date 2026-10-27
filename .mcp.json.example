@@ -13,7 +13,7 @@
         "--project-root",
         "D:\\MCP\\ecommerce-image-replicator-mcp",
         "--workspace",
-        "D:\\AgentWorkspace"
+        "D:\\EcommerceImageReplicator"
       ]
     }
   }

@@ -19,6 +19,7 @@ Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，默认安装到`D:\
 从项目仓库取得v0.1.0标签，按[使用手册](MANUAL.md#2-项目初始化)核对完整SHA，执行`uv sync --locked --no-dev`，
 配置安装根私有`.env`，运行不收费的协议检查，再将本地stdio服务加入Host。日常启动使用`uv run --no-sync`，不临时安装依赖。
 
+默认业务工作区为`D:\EcommerceImageReplicator`，由`--workspace`显式传入，与MCP安装目录分离。
 业务工作区包含`references/<group>/`、`products/`、`brief/`、`prompts/`；结果和恢复记录分别位于`artifacts/`、`.replicator/`。
 后端密钥为`ZHENZHEN_GEMINILLM_API_KEY`与`ZHENZHEN_GPTIMAGEGEN_API_KEY`，逐字段按项目`.env`→进程→Windows用户环境读取。
 未配置密钥和执行预算时只可准备、发现及查询，不会默认提交收费请求。
