@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import json
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from mcp.client.session import ClientSession
@@ -26,6 +27,10 @@ async def check(project: Path, workspace: Path):
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as client:
             await client.discover()
+            if client.server_info is None or client.server_info.version != version(
+                "ecommerce-image-replicator-mcp"
+            ):
+                raise RuntimeError("MCP server version differs from installed distribution")
             tools = await client.list_tools()
             expected = {
                 "inspect_inputs",

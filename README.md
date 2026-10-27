@@ -42,3 +42,5 @@ if ($LASTEXITCODE -ne 0) { throw '本地质量检查失败' }
 
 SDK锁定MCP Python 2.3.0，协议测试为2026-07-28 discover流程。本地stdio协议与真实供应商调用已验证；
 具体Host产品联调和旧协议兼容尚未验证；发布证据见上方CI与Release链接。
+
+已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。版本展示修正及一致性检查已纳入发布后的源码PR，尚未进入新的发布标签；不覆盖v0.1.1附件。

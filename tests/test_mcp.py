@@ -1,5 +1,6 @@
 import json
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from mcp.client.session import ClientSession
@@ -25,6 +26,8 @@ async def test_official_mcp_client_stdio_contracts(workspace):
         async with ClientSession(read, write) as client:
             discovery = await client.discover()
             assert discovery is not None
+            assert client.server_info is not None
+            assert client.server_info.version == version("ecommerce-image-replicator-mcp")
             listed = await client.list_tools()
             assert {tool.name for tool in listed.tools} == {
                 "inspect_inputs",

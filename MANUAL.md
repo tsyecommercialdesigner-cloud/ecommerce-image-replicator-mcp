@@ -253,3 +253,5 @@ v0.1.0在管理员环境首次启动时可能创建仅SYSTEM、Administrators及
 若出现`Workspace runtime access denied`，先停止使用该工作区的MCP，在普通Host账号终端运行`whoami /user`记录实际SID；由管理员检查目标目录的`icacls`和`Get-Acl`。确认账号和目录后，仅授予该账号对`.replicator`及子项的修改权限，保留原ACL。不要授予Everyone完全控制，不要删除数据库或任务记录。修复后在普通权限终端重新执行协议检查，再启用Host。
 
 `Cannot initialize workspace journal`也可能是磁盘空间或数据库锁问题，不应一律当作权限错误。保留原文件并检查相应条件。`Workspace directory not found`表示需要先创建业务工作区。
+
+已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。版本展示修正及一致性检查已纳入发布后的源码PR，尚未进入新的发布标签；不覆盖v0.1.1附件。
