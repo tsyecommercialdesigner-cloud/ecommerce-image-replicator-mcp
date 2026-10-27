@@ -6,6 +6,7 @@
 *.local.toml
 *.local.yaml
 *.local.yml
+/.mcp.json
 /.git-credentials
 /secrets/
 /credentials/
@@ -81,6 +82,8 @@ benchmark-results/
 .cache/
 /.runtime/
 /runtime-data/
+.replicator/
+/artifacts/
 /logs/
 /tmp/
 /temp/

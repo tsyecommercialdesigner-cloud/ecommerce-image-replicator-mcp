@@ -2,6 +2,21 @@
 - gpt-image-2.5-flare 支持 [gpt-image-2 Generations, gpt-image-2 Edits, OpenAI Dall-e Format, Asyncio Mode, Query Async Task]
 - gpt-image-2.5-sunburst 支持 [gpt-image-2 Generations, gpt-image-2 Edits, OpenAI Dall-e Format, Asyncio Mode, Query Async Task]
 
+## 尺寸变体与自动路由（用户补充）
+
+依据用户 2026-10-27（Asia/Shanghai）补充，每个系列另有 `-2k` 和 `-4k` 版本：
+
+| 预处理后画布长边 L | flare 系列 | sunburst 系列 |
+| --- | --- | --- |
+| L <=1024 | gpt-image-2.5-flare | gpt-image-2.5-sunburst |
+| 1024 < L <=2048 | gpt-image-2.5-flare-2k | gpt-image-2.5-sunburst-2k |
+| 2048 < L <=4096 | gpt-image-2.5-flare-4k | gpt-image-2.5-sunburst-4k |
+
+路由使用预处理后实际提交尺寸，4k 版本长边支持到4096；本项目据此将预处理长边上限
+从3840更新至4096。其余16倍数、总像素和比例限制继续使用现有约束。
+下方原始规范中的3840描述保留为历史来源，与本项目采用的最新补充区分。
+以上是用户提供的能力说明，尚未对新增变体执行真实收费接口验证。
+
 # gpt-image-2 Generations
 
 ## OpenAPI Specification
