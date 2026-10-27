@@ -70,8 +70,8 @@ Unix 使用 `chmod 600 .env`。Agent 工作区按工作流契约放入输入，�
 CI job 超时设为15分钟。成员无需安装开发依赖即可执行下面的只读协议发现检查（45秒超时，不请求供应商）：
 
 ```powershell
-New-Item -ItemType Directory -Path 'D:\AgentWorkspace' -Force | Out-Null
-uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scripts/smoke.py --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\AgentWorkspace'
+New-Item -ItemType Directory -Path 'D:\EcommerceImageReplicator' -Force | Out-Null
+uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scripts/smoke.py --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\EcommerceImageReplicator'
 if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 ```
 
@@ -99,7 +99,7 @@ if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
         "--project-root",
         "D:\\MCP\\ecommerce-image-replicator-mcp",
         "--workspace",
-        "D:\\AgentWorkspace"
+        "D:\\EcommerceImageReplicator"
       ]
     }
   }
@@ -115,7 +115,7 @@ args = [
   "--directory", "D:\\MCP\\ecommerce-image-replicator-mcp",
   "run", "--no-sync", "python", "-m", "image_replicator",
   "--project-root", "D:\\MCP\\ecommerce-image-replicator-mcp",
-  "--workspace", "D:\\AgentWorkspace"
+  "--workspace", "D:\\EcommerceImageReplicator"
 ]
 ```
 
@@ -126,7 +126,7 @@ Claude-3p、Cherry Studio、DSH web/desktop/multica 及各 Host CLI 的 PowerShe
 ## 5. 启动排障与更新
 
 ```powershell
-uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\AgentWorkspace'
+uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\EcommerceImageReplicator'
 if ($LASTEXITCODE -ne 0) { throw '服务退出失败，检查 stderr。' }
 ```
 
@@ -155,7 +155,7 @@ git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.0
 if ($LASTEXITCODE -ne 0) { throw '切换失败' }
 uv --directory $ProjectDir sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '安装失败，不启动服务' }
-uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir --workspace 'D:\AgentWorkspace'
+uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir --workspace 'D:\EcommerceImageReplicator'
 if ($LASTEXITCODE -ne 0) { throw '协议复验失败' }
 ```
 
