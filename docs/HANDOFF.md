@@ -21,6 +21,8 @@ A18已完成05重绘并替换当前结果，全套12张复刻验收通过。缺�
 
 v0.1.0已于2026-10-27正式发布，目标SHA `726efe6ad27933656ca24214806043f794450196`；PR #1、合入与标签Windows/Linux CI通过，下载附件摘要和独立安装验收通过。实际发布记录见 [v0.1.0](releases/v0.1.0.md)，最新成员步骤见MANUAL。下方保留初始交接历史，不代表当前发布状态。Beads创建任务仍缺issue_prefix；未初始化或同步其不同名远端。
 
+v0.1.1已发布，目标`c85f396c559411a68bdd5a2cba4bbbe858ab3245`。Windows新建运行目录继承工作区ACL，新增非零stderr启动诊断；默认业务目录D:\EcommerceImageReplicator。PR #3/#4及合入/标签双平台CI、正式附件摘要和独立安装通过，详见[发布记录](releases/v0.1.1.md)。旧ACL不自动修复，现有任务不自动迁移。
+
 ## 项目目标与当前状态
 
 Python LangGraph `StateGraph` 封装为本地 stdio MCP Server，为 Agent 提供电商竞品图复刻。
