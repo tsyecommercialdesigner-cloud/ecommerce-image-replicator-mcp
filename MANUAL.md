@@ -1,15 +1,25 @@
 # 使用手册
 
-v0.1.0交付文档草稿（2026-10-27）。尚未执行目标提交的PR、Windows CI、合入与正式发布；不能将本文件视为发布完成证明。
+v0.1.0 已于2026-10-27 17:42（Asia/Shanghai）正式发布。本页按实际发布结果回填；标签内手册保留发布前快照，最新交付证据见本页和Release。
 
-| 发布核对项 | 当前状态 |
+| 发布核对项 | 实际结果 |
 |---|---|
-| 仓库 | https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp（本地origin配置） |
-| 目标标签 | v0.1.0，待创建并核对 |
-| 完整目标SHA、PR、Windows CI、合入CI | 待PR及发布流程核验 |
-| 附件 | 计划为源码包、wheel、SHA256SUMS、SOURCE_COMMIT；实际发布资产待核对 |
-| 安装验证 | 本地候选包验证与目标提交干净clone验收分开记录，见发布说明 |
+| Release | [v0.1.0](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.0) |
+| 标签目标完整SHA | `726efe6ad27933656ca24214806043f794450196` |
+| PR及审查 | [PR #1](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/1)；维护代理审查，无独立人员审批；仓库未配置分支保护，按流程核对CI门禁 |
+| PR Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40482056320) |
+| 合入Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40482261058) |
+| 标签CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40482454707)，先草稿、核验后公开 |
+| 安装验证 | Windows Python 3.12.14，远端干净checkout及下载源码包锁定无开发依赖安装、wheel安装通过；8工具/1资源/1提示；未调用收费API |
 
+已下载核对4个附件的GitHub digest；两个包同时与SHA256SUMS一致，SOURCE_COMMIT与标签目标一致。
+
+| 正式附件 | SHA256 |
+|---|---|
+| [ecommerce_image_replicator_mcp-0.1.0-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/ecommerce_image_replicator_mcp-0.1.0-py3-none-any.whl) | `5fc8d7aaf47e001a45c2d1235d330be65b47bc4fc6d06efb8f00a3c8f0ec65da` |
+| [ecommerce_image_replicator_mcp-0.1.0.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/ecommerce_image_replicator_mcp-0.1.0.tar.gz) | `5ba5deaa7e6bc2a18601b4bac72085bec74a946d5c8db98de69670cc9d8727ca` |
+| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/SHA256SUMS) | `aff585a5aea772115f119769bf78a535d74b124e059b3bcfd9a50b5aa1ad3d5d` |
+| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/SOURCE_COMMIT) | `1014b0d80d49dd8f2714317149aeb08576871d4ae3a35435360cfac109637bfd` |
 
 ## 1. 环境准备
 
@@ -24,7 +34,7 @@ Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业�
 
 ## 2. 项目初始化
 
-以下是v0.1.0公开发布后使用的固定版本安装流程，目前不可据此宣称标签已存在。
+以下为已发布v0.1.0的固定版本安装流程。
 先从仓库Release核对发布状态、Windows CI及附件SOURCE_COMMIT全文；完整SHA必须对应该标签。
 仓库访问需成员自己的GitHub权限，不能把令牌拼入URL。D盘及运行账号须有相应空间与读写权限。
 
@@ -33,7 +43,7 @@ $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path 'D:\MCP' -Force | Out-Null
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 if (Test-Path $ProjectDir) { throw '目录已存在，请使用更新流程。' }
-$ExpectedCommit = Read-Host '粘贴已核验Release的SOURCE_COMMIT完整40位SHA'
+$ExpectedCommit = '726efe6ad27933656ca24214806043f794450196'
 if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA格式不正确，停止安装' }
 git clone --branch v0.1.0 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw 'clone 失败' }
