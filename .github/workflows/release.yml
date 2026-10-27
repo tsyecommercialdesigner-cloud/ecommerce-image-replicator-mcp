@@ -1,0 +1,42 @@
+name: Release
+on:
+  push:
+    tags: ['v*']
+permissions:
+  contents: read
+jobs:
+  validate:
+    uses: ./.github/workflows/ci.yml
+  publish:
+    needs: validate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: release
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: '0.12.23'
+          python-version: '3.12'
+      - run: uv sync --locked --no-dev
+      - name: Check tag matches project version
+        run: |
+          python - <<'PY'
+          import os, tomllib
+          from pathlib import Path
+          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
+          assert os.environ['GITHUB_REF_NAME'] == 'v' + version
+          PY
+      - run: uv build --no-sources
+      - name: Checksums and source provenance
+        run: |
+          sha256sum dist/* > SHA256SUMS
+          git rev-parse HEAD > SOURCE_COMMIT
+      - name: Create release draft for operator verification
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          test -f "docs/releases/$GITHUB_REF_NAME.md"
+          gh release create "$GITHUB_REF_NAME" dist/* SHA256SUMS SOURCE_COMMIT --verify-tag --draft --title "$GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"

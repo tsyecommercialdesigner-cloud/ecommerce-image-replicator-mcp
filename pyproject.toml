@@ -1,0 +1,51 @@
+[project]
+name = "ecommerce-image-replicator-mcp"
+version = "0.1.0"
+description = "Durable LangGraph image replication workflow exposed over MCP stdio"
+requires-python = ">=3.12"
+dependencies = [
+  "mcp>=2.3.0,<3",
+  "langgraph>=1.2.18,<2",
+  "langgraph-checkpoint-sqlite>=3.1.2,<4",
+  "httpx>=0.28,<1",
+  "pillow>=13,<14",
+  "pydantic>=2.12,<3",
+  "python-dotenv>=1.2,<2",
+  "portalocker>=3.2,<4",
+]
+
+[project.scripts]
+ecommerce-image-replicator = "image_replicator.server:main"
+
+[dependency-groups]
+dev = ["pytest>=9,<10", "pytest-asyncio>=1,<2", "ruff>=0.14", "mypy>=1.19", "pip-audit>=2.10"]
+
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/image_replicator"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src", "/tests", "/scripts", "/docs",
+  "/pyproject.toml", "/uv.lock", "/README.md", "/MANUAL.md", "/LICENSE",
+  "/AGENTS.md", "/.env.example", "/.mcp.json.example",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+
+[tool.mypy]
+python_version = "3.12"
+check_untyped_defs = true
+ignore_missing_imports = true
