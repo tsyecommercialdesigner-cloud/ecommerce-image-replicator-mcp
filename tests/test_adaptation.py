@@ -633,9 +633,7 @@ async def test_lock_rejection_cannot_change_recovery_only_submission_permission(
 
 
 BOUNDARY_CASES = json.loads(
-    (Path(__file__).parents[1] / "brief/cases/A13-product-brand-boundary.json").read_text(
-        encoding="utf-8"
-    )
+    (Path(__file__).parent / "fixtures/product-brand-boundary.json").read_text(encoding="utf-8")
 )
 
 

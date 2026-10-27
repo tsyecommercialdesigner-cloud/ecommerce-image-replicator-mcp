@@ -1,0 +1,56 @@
+[
+  {
+    "id": "product-attributes",
+    "reference": "detailpages-06.png",
+    "stage": "prepare",
+    "expected": "allowed",
+    "delta": {
+      "instruction": "按给定产品属性更新原文案区域中的尺寸和材料信息；保留原排版和擦拭演示。",
+      "design": {
+        "product_attributes": [
+          {"property": "dimensions", "value": "20×20 cm", "source": "A13合成测试数据，非真实商品规格"},
+          {"property": "material", "value": "棉", "source": "A13合成测试数据，非真实商品材料"}
+        ]
+      }
+    }
+  },
+  {
+    "id": "brand-theme",
+    "reference": "detailpages-06.png",
+    "stage": "prepare",
+    "expected": "allowed",
+    "delta": {
+      "design": {
+        "brand_style": {"palette": ["海军蓝", "浅蓝"], "tone": "明快", "art_style": "水彩插画", "typography": "清晰的品牌无衬线字体"}
+      }
+    }
+  },
+  {
+    "id": "layout-change",
+    "reference": "detailpages-11.png",
+    "stage": "prepare",
+    "expected": "rejected",
+    "delta": {"design": {"layout_regions": [{"id": "single", "purpose": "四格改一格", "box": {"x": 0, "y": 0, "width": 1000, "height": 1000}}]}}
+  },
+  {
+    "id": "object-count-change",
+    "reference": "detailpages-08.png",
+    "stage": "prepare",
+    "expected": "rejected",
+    "delta": {"design": {"objects": [{"id": "roll", "description": "仅保留一个卷", "count": 1, "placement": "居中", "action": "静物"}]}}
+  },
+  {
+    "id": "erase-stains",
+    "reference": "detailpages-06.png",
+    "stage": "prepare",
+    "expected": "rejected",
+    "delta": {"design": {"forbidden_elements": ["污渍", "手"]}}
+  },
+  {
+    "id": "mixed-brand-and-structure",
+    "reference": "detailpages-06.png",
+    "stage": "review",
+    "expected": "needs_revision_if_stains_removed",
+    "delta": {"instruction": "改成蓝色水彩风，并删除污渍和擦拭的手。", "design": {"brand_style": {"palette": ["蓝"], "art_style": "水彩"}}}
+  }
+]
