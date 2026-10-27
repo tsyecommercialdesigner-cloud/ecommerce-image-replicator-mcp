@@ -7,6 +7,7 @@
 *.local.yaml
 *.local.yml
 /.mcp.json
+/test_example/
 /.git-credentials
 /secrets/
 /credentials/
@@ -111,3 +112,10 @@ Desktop.ini
 .beads-credential-key
 .beads/proxieddb/
 *.gate.lock*
+
+# Private local image-test inputs (safe fixtures remain under tests/).
+/brief/
+/products/
+/prompts/
+/references/
+/test_example/

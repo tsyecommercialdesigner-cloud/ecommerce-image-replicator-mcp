@@ -10,6 +10,7 @@ from urllib.parse import urlsplit
 import httpx
 
 from .config import KEYS, Settings
+from .diagnostics import record_llm_error
 from .storage import atomic_write, canonical, strict_json
 
 
@@ -23,6 +24,67 @@ class SubmissionUnknown(Exception):
 
 class ProviderFailure(Exception):
     pass
+
+
+class LLMHTTPFailure(ProviderFailure):
+    def __init__(self, status_code: int, diagnostic_id: str):
+        self.status_code = status_code
+        self.diagnostic_id = diagnostic_id
+        self.terminal = status_code in {400, 401, 403, 404, 413, 415, 422}
+        super().__init__(f"LLM HTTP {status_code}; diagnostic={diagnostic_id}")
+
+
+def inline_schema(schema: dict) -> dict:
+    """Expand local definitions for Gemini's response_schema bridge without dropping constraints."""
+    definitions = schema.get("$defs", {})
+
+    def expand(node, stack: tuple[str, ...] = ()):
+        if isinstance(node, list):
+            return [expand(item, stack) for item in node]
+        if not isinstance(node, dict):
+            return node
+        if "$ref" in node:
+            ref = node["$ref"]
+            prefix = "#/$defs/"
+            if not isinstance(ref, str) or not ref.startswith(prefix):
+                raise ValueError("Only local schema definitions are supported")
+            name = ref[len(prefix) :]
+            if name not in definitions or name in stack or len(node) != 1:
+                raise ValueError("Missing, recursive or ambiguous schema reference")
+            return expand(definitions[name], (*stack, name))
+        return {key: expand(value, stack) for key, value in node.items() if key != "$defs"}
+
+    return expand(schema)
+
+
+def gemini_response_schema(schema: dict) -> dict:
+    """Project onto the supplier's Schema subset; full validation remains client-side."""
+
+    def adapt(node):
+        result: dict = {}
+        notes = []
+        for key, value in node.items():
+            if key == "additionalProperties":
+                if value is not False:
+                    raise ValueError("Open additionalProperties schemas are not supported")
+                notes.append("Do not return properties not listed in this object.")
+            elif key == "exclusiveMinimum":
+                if isinstance(value, bool) or not isinstance(value, (int, float)):
+                    raise ValueError("Expected a numeric exclusiveMinimum")
+                notes.append(f"Value must be strictly greater than {value}.")
+            elif key == "properties":
+                result[key] = {name: adapt(child) for name, child in value.items()}
+            elif key == "items":
+                result[key] = adapt(value)
+            else:
+                result[key] = value
+        if "exclusiveMinimum" in node:
+            result["minimum"] = max(node["exclusiveMinimum"], result.get("minimum", float("-inf")))
+        if notes:
+            result["description"] = " ".join([result.get("description", ""), *notes]).strip()
+        return result
+
+    return adapt(inline_schema(schema))
 
 
 def data_url(path: str) -> str:
@@ -50,6 +112,7 @@ def analysis_body(model: str, kind: str, jobs: list[dict], schema: dict, max_tok
             "art style, palette, lighting and mood. Exclude text and typography, and ignore "
             "padding identified in metadata."
         )
+    instruction += " Full output contract, validated locally: " + canonical(schema)
     content = []
     for job in jobs:
         content.extend(
@@ -71,7 +134,11 @@ def analysis_body(model: str, kind: str, jobs: list[dict], schema: dict, max_tok
         ],
         "response_format": {
             "type": "json_schema",
-            "json_schema": {"name": f"{kind}_batch", "strict": True, "schema": schema},
+            "json_schema": {
+                "name": f"{kind}_batch",
+                "strict": True,
+                "schema": gemini_response_schema(schema),
+            },
         },
     }
 
@@ -91,10 +158,11 @@ class Provider:
         response = await self.client.post(
             self.settings.base_url + "/v1/chat/completions",
             json=body,
-            headers={"Authorization": "Bearer " + self.keys[KEYS[0]]},
+            headers={"Authorization": "Bearer " + self.keys[KEYS[0]], "Accept": "application/json"},
         )
         if response.status_code != 200:
-            raise ProviderFailure(f"LLM HTTP {response.status_code}")
+            diagnostic_id = record_llm_error(self.settings.workspace, response, body, self.keys)
+            raise LLMHTTPFailure(response.status_code, diagnostic_id)
         try:
             choice = response.json()["choices"][0]
             if choice.get("finish_reason") != "stop":

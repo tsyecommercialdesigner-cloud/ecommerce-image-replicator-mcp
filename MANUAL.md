@@ -1,5 +1,16 @@
 # 使用手册
 
+v0.1.0交付文档草稿（2026-10-27）。尚未执行目标提交的PR、Windows CI、合入与正式发布；不能将本文件视为发布完成证明。
+
+| 发布核对项 | 当前状态 |
+|---|---|
+| 仓库 | https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp（本地origin配置） |
+| 目标标签 | v0.1.0，待创建并核对 |
+| 完整目标SHA、PR、Windows CI、合入CI | 待PR及发布流程核验 |
+| 附件 | 计划为源码包、wheel、SHA256SUMS、SOURCE_COMMIT；实际发布资产待核对 |
+| 安装验证 | 本地候选包验证与目标提交干净clone验收分开记录，见发布说明 |
+
+
 ## 1. 环境准备
 
 Python 3.12+；开发与 CI 固定 Python 3.12、uv 0.12.23。官方 MCP Python SDK 锁定 2.3.0，
@@ -13,15 +24,21 @@ Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业�
 
 ## 2. 项目初始化
 
-尚无已通过 CI 发布的标签；以下为开发安装，不能当作已验收的稳定发行版。
+以下是v0.1.0公开发布后使用的固定版本安装流程，目前不可据此宣称标签已存在。
+先从仓库Release核对发布状态、Windows CI及附件SOURCE_COMMIT全文；完整SHA必须对应该标签。
+仓库访问需成员自己的GitHub权限，不能把令牌拼入URL。D盘及运行账号须有相应空间与读写权限。
 
 ```powershell
 $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path 'D:\MCP' -Force | Out-Null
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 if (Test-Path $ProjectDir) { throw '目录已存在，请使用更新流程。' }
-git clone --branch dev --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
+$ExpectedCommit = Read-Host '粘贴已核验Release的SOURCE_COMMIT完整40位SHA'
+if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA格式不正确，停止安装' }
+git clone --branch v0.1.0 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw 'clone 失败' }
+$ActualCommit = git -C $ProjectDir rev-parse HEAD
+if ($LASTEXITCODE -ne 0 -or $ActualCommit -ne $ExpectedCommit) { throw '提交不匹配，停止安装' }
 Set-Location $ProjectDir
 uv sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '安装失败' }
@@ -38,7 +55,14 @@ Unix 使用 `chmod 600 .env`。Agent 工作区按工作流契约放入输入，�
 检查格式、lint、类型、测试和秘密模式；失败返回非零。测试包含实际 SDK stdio 子进程，
 资源/提示/工具发现、输入准备、错误返回与 SQLite 恢复，使用临时目录和假值，不触发收费。
 构建用 `uv build --no-sources`；依赖检查用 `uv run --no-sync pip-audit`。
-CI job 超时设为 15 分钟。上述检查不代表真实图像质量或 Host 联调通过。
+CI job 超时设为15分钟。成员无需安装开发依赖即可执行下面的只读协议发现检查（45秒超时，不请求供应商）：
+
+```powershell
+uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scripts/smoke.py --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\AgentWorkspace'
+if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
+```
+
+工作区需已存在。成功输出包含8个工具、1个资源、1个提示；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
 
 ## 4. 客户端配置
 
@@ -98,16 +122,38 @@ if ($LASTEXITCODE -ne 0) { throw '服务退出失败，检查 stderr。' }
 不代表经供应商确认的上限。下载额外域名通过重复 `--download-host` 显式允许。
 
 更新前停止 MCP、记录 `git rev-parse HEAD` 并检查 `git status --porcelain`；有修改先保留。
-开发更新在干净 dev 执行 `git pull --ff-only origin dev`，再 `uv sync --locked --no-dev`。
-稳定发布后获取并核对标签/SHA，使用 `git switch --detach --no-overwrite-ignore <标签或SHA>`，
-重新锁定安装并验证。回滚切回已记录 SHA 后重新安装；保留 `.env`、工作区和 `.replicator`，
+成员只更新到已公开且核验通过的标签，避免跟随开发分支。
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
+$Changes = git -C $ProjectDir status --porcelain
+if ($LASTEXITCODE -ne 0 -or $Changes) { throw '工作区存在改动或检查失败，停止升级' }
+$PreviousCommit = git -C $ProjectDir rev-parse HEAD
+if ($LASTEXITCODE -ne 0) { throw '无法记录原提交' }
+Write-Host "保留原提交：$PreviousCommit"
+$ExpectedCommit = Read-Host '粘贴目标Release的SOURCE_COMMIT完整40位SHA'
+if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA无效' }
+git -C $ProjectDir fetch origin tag v0.1.0
+if ($LASTEXITCODE -ne 0) { throw '获取目标失败' }
+$TagCommit = git -C $ProjectDir rev-parse 'v0.1.0^{commit}'
+if ($LASTEXITCODE -ne 0 -or $TagCommit -ne $ExpectedCommit) { throw '标签与发布提交不一致' }
+git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.0
+if ($LASTEXITCODE -ne 0) { throw '切换失败' }
+uv --directory $ProjectDir sync --locked --no-dev
+if ($LASTEXITCODE -ne 0) { throw '安装失败，不启动服务' }
+uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir --workspace 'D:\AgentWorkspace'
+if ($LASTEXITCODE -ne 0) { throw '协议复验失败' }
+```
+
+回滚同样先确认工作区干净，用记录的完整SHA执行`git switch --detach --no-overwrite-ignore`，再锁定安装和协议检查。回滚切回已记录 SHA 后重新安装；保留 `.env`、工作区和 `.replicator`，
 不 reset/clean 清空。不承诺未来数据库 schema 的降级兼容。
 
 ## 6. 文件清单
 
 Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥模板。
 `.venv`、缓存、构建、测试报告为生成物。业务工作区 `.replicator` 保存恢复状态和中间图像，
-`artifacts` 保存最终结果。入口 `python -m image_replicator`，不提供 ZIP。
+`artifacts` 保存最终结果。入口 `python -m image_replicator`。Release计划附源码包、wheel和摘要/来源文件，不提供额外成员ZIP安装包。源码包采用显式白名单，不包含产品图、竞品图、业务brief、任务数据库或本地证据。
 
 ## 7. 资源清单
 
@@ -115,11 +161,14 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 |---|---|---|
 | Resource `replicator://input-contract` | 增量 schema、顺序、预算 | 无收费 |
 | Prompt `prepare_inputs` | 无参数，返回 Agent 输入说明 | 无收费 |
-| Tool `inspect_inputs` | 无参数，返回分组顺序 | 读取工作区 |
-| Tool `prepare_run` | 可选 options：image_model、concurrency（1..8，默认2） | 冻结输入，返回 thread_id/jobs |
+| Tool `inspect_inputs` | 无参数，返回分组顺序和稳定 image_id | 读取工作区 |
+| Tool `prepare_run` | options：image_model、concurrency、selected_image_ids、review_mode、max_visual_revisions | 冻结 v2 输入，返回 thread_id/jobs |
 | Tool `execute_run` | thread_id | 授权收费，后台执行或恢复 |
 | Tool `get_run` | thread_id；返回状态、jobs、完成时 artifacts | 只读本地 |
 | Tool `reconcile_submission` | thread_id、从0开始的index、供应商task_id | 查询并绑定已知任务，不提交绘图 |
+| Tool `get_design` | thread_id、image_id；返回原图绑定的复刻契约及哈希或缺失的分析字段 | 只读本地 |
+| Tool `record_review` | thread_id、report；必须匹配原图/成图/契约哈希及全部检查项 | 保存对照验收证据，无 API 调用 |
+| Tool `prepare_revision` | parent_thread_id、updates；可选 product_context、legacy_revision_budget | 预留谱系预算并冻结指定图片修订，无 API 调用 |
 
 工具名称如表，Host 对模型暴露的前缀由 Host 决定。工具失败使用 isError；后台失败为
 run.status=blocked。scheduled 只表示已安排执行，不代表生成成功，使用 get_run 查询。
@@ -130,9 +179,31 @@ Agent 根据 brief/产品图/竞品图，按 inspect_inputs 顺序写 prompts �
 检查 jobs 后调用 execute_run，再轮询 get_run。options.image_model 选择 flare 或 sunburst 系列；
 按预处理后画布长边自动选版本：<=1024 无后缀，1024 < 长边 <=2048 使用 -2k，
 2048 < 长边 <=4096 使用 -4k。实际模型持久化并由 jobs[].model 返回，重试复用。
-文案、画面分别反推，校验后整合增量并发绘图，
-持久化原图，再裁剪恢复尺寸。相同冻结输入得到同一 thread_id；修改原文件需重新 prepare。
+当前以原始参考图的构图、对象和互动关系为基线；允许产品属性与品牌主题变化。v2 只反推缺失字段，再逐图生成、落盘和对照验收。产品事实和默认要求写入
+brief/design.json；Markdown 仅冻结留档，不再整段加入提示。完整 texts/scene 可以省去两类反推。
+相同冻结输入得到同一 thread_id；修改原文件需重新 prepare。
 同一 thread 恢复复用 checkpoint 和供应商任务，已完成时返回已有产物。
+
+默认 review_mode=manual、max_visual_revisions=0，生成后为 review_required；vision 增加每图最多
+一次 Gemini 视觉评审。accepted 才表示全部验收项通过，模型判断不等于真实商品性能认证。
+生成始终携带完整参考图；验收同时携带原图、成图和产品图，保留污渍、手部、动作等原有表现元素。
+design.product_attributes 用 property/value/source 指定产品名称、尺寸、材料、规格、外观等有依据的属性；
+design.brand_style 的 palette/tone 可按产品图适配；art_style 只在用户明确指定艺术风格时填写，
+否则沿用各原图的摄影/图标/插画等原有风格，不因配色变化自动水彩化。
+scene/instruction 不能改变主要表达、关键主体身份和互动；允许少量无损主旨的装饰、位置和渲染差异。
+精确花色等改名用`text_replacements`指定old/new/source；构造阶段落实为最终texts，未匹配或冲突会阻止提交。
+`design.brand_style.text_color`指定六位HEX主题字色，构造阶段覆盖结构化文字CSS并校验，成图另查text_theme。
+文案缺少修订信息时先询问；用户明确坚持继续才沿用未确定部分的参考文案，产品及颜色适配不能撤销。
+已有明确改名要求直接修订，不重复索取；新图需重新验收，不能把旧失败图直接标为通过。
+新输入拒绝 layout/rebuild，以及非空的 objects/layout_regions/forbidden_elements 结构覆盖。
+验收检查表达主旨/关键关系保留与增量生效，不要求像素或所有细节完全一样；小差异可通过。
+自然语言越界仍需人工或模型对照验收，本地 schema 不保证完整语义识别。
+历史 accepted 不代表复刻通过，应核对 alignment_policy 和 reference_alignment_verified。
+新策略为 reference-creative-v1，旧v2未提交任务不能继续执行，已提交任务仅恢复查询/下载，不再追加绘图POST。
+历史用户明确接受的结果仍保留，策略标记变更不撤销用户接受决定。
+partial 会返回已完成图片，needs_revision 可用 prepare_revision 只修订指定图；之后仍需显式 execute。
+使用 selected_image_ids 选择小样本，不必另建参考目录。完整字段、预算、状态和 v1 迁移见
+[v2 设计与修订](docs/DESIGN-V2.md)。已有 v1 thread 按原流程恢复，不自动重绘或升级验收状态。
 
 ## 9. 注意事项
 
@@ -147,10 +218,15 @@ Agent 根据 brief/产品图/竞品图，按 inspect_inputs 顺序写 prompts �
 
 - 未配置预算/密钥：配置启动参数和安装根 `.env` 后重启。
 - 严格 JSON 不支持或截断：核对供应商能力和输出预算；不自动降级自由文本。
+- Gemini schema：项目将本地引用展开并适配供应商 schema 子集，完整约束仍由客户端校验。
+  LLM HTTP 400/401/403/404/413/415/422 会阻塞相同请求；查看错误中的 diagnostic_id 对应
+  `.replicator/errors/<diagnostic_id>.json`。记录仅含脱敏、限长字段及响应摘要，不含原始 HTTP 正文。
 - 顺序错误：核对自然排序及增量数组；错序 LLM 输出会拒绝。
 - NOT_START/IN_PROGRESS：继续查询，不重复提交。
 - 提交未知：向供应商找回原 task_id，再 reconcile；无法找回保持阻塞。
 - 下载失败：补充授权域名后恢复已有任务。
 - 返回尺寸不符：原图已保留，先确认供应商 size 行为，避免错误裁剪。
 - 安装失败：核对锁、uv/Python 与 TLS/包源，不删锁或关闭校验。
-- Beads：当前云环境缺少 bd，尚未创建任务记录；未覆盖现有 Dolt 配置。
+- GitHub标签或权限错误：确认Release已公开、账号有仓库权限，并核对SOURCE_COMMIT；不可改装未核验开发HEAD。
+- Host无法发现：先执行smoke.py；模板只验证语法，Host产品、旧协议或CLI注册组合未联调。
+- 本地126项测试及12张真实复刻验收通过，不等于GitHub目标提交、Windows CI或发布安装已验收。

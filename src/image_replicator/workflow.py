@@ -14,6 +14,7 @@ from .images import postprocess, preprocess, route_image_model
 from .inputs import safe_path
 from .models import GraphState, TextBatch, VisualBatch
 from .provider import (
+    LLMHTTPFailure,
     Provider,
     ProviderFailure,
     SafeToRetry,
@@ -31,6 +32,8 @@ def validate_task_id(task_id: str) -> str:
 
 
 class Workflow:
+    allow_new_submissions = True
+
     def __init__(self, settings: Settings, journal: Journal, provider: Provider):
         self.settings, self.journal, self.provider = settings, journal, provider
         self.root = settings.workspace.resolve()
@@ -88,6 +91,11 @@ class Workflow:
                 }
             )
             record = self.journal.get("llm", key) or {"attempts": 0}
+            if record.get("terminal_http_status"):
+                raise ProviderFailure(
+                    f"LLM HTTP {record['terminal_http_status']}; "
+                    f"diagnostic={record['diagnostic_id']}; unchanged request is blocked"
+                )
             if "result" in record:
                 descriptions.extend(record["result"])
                 continue
@@ -113,6 +121,17 @@ class Workflow:
                     break
                 except asyncio.CancelledError:
                     raise
+                except LLMHTTPFailure as exc:
+                    record.update(
+                        error=f"LLM HTTP {exc.status_code}", diagnostic_id=exc.diagnostic_id
+                    )
+                    if exc.terminal:
+                        record["terminal_http_status"] = exc.status_code
+                    self.journal.put("llm", key, record)
+                    if exc.terminal:
+                        raise
+                    if record["attempts"] < 6:
+                        await asyncio.sleep(min(2**attempt, 8))
                 except Exception:
                     record["error"] = "LLM request or strict output validation failed"
                     self.journal.put("llm", key, record)
@@ -173,8 +192,10 @@ class Workflow:
 
     async def generate_one(self, state: GraphState, index: int):
         key = self.operation_key(state, index)
-        self.journal.put("run_job", f"{state.thread_id}:{index}", {"key": key})
         job = state.prepared[index]
+        self.journal.put(
+            "run_job", f"{state.thread_id}:{job.get('run_index', index)}", {"key": key}
+        )
         record = self.journal.get("image", key) or {"status": "new", "attempts": 0}
         raw_path = self.local(f".replicator/raw/{key}.image")
         if record["status"] == "downloaded":
@@ -190,6 +211,8 @@ class Workflow:
         if record["status"] in {"failed", "exhausted"}:
             raise ProviderFailure("Image operation is terminal; no automatic paid resubmission")
         if record["status"] == "new":
+            if not self.allow_new_submissions:
+                raise ProviderFailure("Historical redesign run is recovery-only; no new image POST")
             family = state.manifest["options"]["image_model"]
             if "model" not in record:
                 # Legacy attempts used the unsuffixed model. Preserve their routing
@@ -204,8 +227,11 @@ class Workflow:
                 "prompt": state.prompts[index],
                 "size": "x".join(map(str, job["transform"]["canvas"])),
                 "image": [
-                    data_url(job["prepared_path"]),
-                    *[data_url(p["path"]) for p in state.manifest["products"]],
+                    data_url(path)
+                    for path in job.get(
+                        "generation_paths",
+                        [job["prepared_path"], *[p["path"] for p in state.manifest["products"]]],
+                    )
                 ],
             }
             # Check body before marking the irreversible boundary.

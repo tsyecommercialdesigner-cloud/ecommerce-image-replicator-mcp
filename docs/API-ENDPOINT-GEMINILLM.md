@@ -271,6 +271,25 @@ fetch("https://ai.t8star.org/v1beta/models/{{MODEL}}:generateContent", requestOp
 
 # OpenAI Chat Completions (Image analysis)
 
+## 本项目兼容性观察（2026-10-27）
+
+使用 `gemini-3.8-flash`、首张参考图 Data URL 和
+`response_format.type=json_schema` 的一次诊断请求返回 HTTP 400。
+脱敏响应明确报告：`generation_config.response_schema` 不接受 `$defs`，其嵌套属性不接受 `$ref`。
+这是本供应商转发链路的观察，不是对所有 Gemini 或 OpenAI 接口的统一限制。
+
+展开引用后的首次复测又报告嵌套 `additionalProperties` 和 `exclusiveMinimum` 不受支持。
+最终适配将本地引用内联，出站移除 `additionalProperties` 并补描述，将 `exclusiveMinimum`
+映射为包含边界的 minimum 加严格大于描述。完整原始 schema 放入系统提示；保留 `strict=true`
+和原始 Pydantic 模型的客户端校验，未知字段、零宽高等依旧拒绝，不能将兼容子集当作完整约束。
+[Google 结构化输出说明](https://ai.google.dev/gemini-api/docs/structured-output#json-schema-support)
+也要求应用端验证输出；其原生接口当前支持范围不等于此供应商转发链路。
+本文原始 OpenAPI 未声明 `response_format` 的支持细节；
+不能仅凭 Chat Completions 兼容标识推断支持完整 JSON Schema。
+本地诊断证据位于 `.cache/validation/gemini400-20261027/diagnostic-response.json`，不随交付发布。
+最终首图复测中，文案和非文字画面两类分析均由 `gemini-3.8-flash` 一次请求成功，
+响应经过原始 Pydantic 校验。此结论限单张参考图，不证明批量或备用模型成功路径。
+
 ## OpenAPI Specification
 
 ```yaml

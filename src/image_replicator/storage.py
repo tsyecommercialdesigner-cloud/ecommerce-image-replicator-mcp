@@ -83,3 +83,8 @@ class Journal:
                 "DO UPDATE SET value=excluded.value",
                 (kind, key, canonical(value)),
             )
+
+    def records(self, kind: str):
+        with self.connect() as conn:
+            rows = conn.execute("SELECT key,value FROM records WHERE kind=?", (kind,)).fetchall()
+        return [(key, json.loads(value)) for key, value in rows]

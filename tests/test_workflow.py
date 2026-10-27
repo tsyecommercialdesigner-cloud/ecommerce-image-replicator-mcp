@@ -1,17 +1,26 @@
 import base64
 import io
 import json
+from functools import partial
 from pathlib import Path
 
 import pytest
 from PIL import Image
 
 from image_replicator.config import Settings
-from image_replicator.inputs import freeze
+from image_replicator.inputs import freeze as freeze_inputs
 from image_replicator.models import RunOptions
-from image_replicator.provider import ProviderFailure, SafeToRetry, SubmissionUnknown
+from image_replicator.provider import (
+    LLMHTTPFailure,
+    ProviderFailure,
+    SafeToRetry,
+    SubmissionUnknown,
+)
 from image_replicator.storage import Journal, atomic_write
 from image_replicator.workflow import Workflow
+
+# These regressions deliberately exercise the retained v1 graph and operation keys.
+freeze = partial(freeze_inputs, version=1)
 
 
 class FakeProvider:
@@ -103,6 +112,25 @@ async def test_full_graph_and_sqlite_resume(setup):
     assert again["artifacts"] == result["artifacts"]
     assert len(provider.submissions) == 3
     assert len(provider.analysis) == 2
+
+
+async def test_terminal_llm_http_failure_blocks_unchanged_resume(setup):
+    workflow, manifest, provider = setup
+    calls = []
+
+    async def reject(body):
+        calls.append(body)
+        raise LLMHTTPFailure(400, "test-diagnostic-id")
+
+    provider.analyze = reject
+    with pytest.raises(ProviderFailure, match="HTTP 400"):
+        await workflow.execute(manifest)
+    before = len(calls)
+    assert 1 <= before <= 2  # Independent text and visual nodes, one request each.
+    with pytest.raises(ProviderFailure, match="HTTP 400"):
+        await Workflow(workflow.settings, workflow.journal, provider).execute(manifest)
+    assert len(calls) == before
+    assert provider.submissions == []
 
 
 @pytest.mark.parametrize("family", ["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"])

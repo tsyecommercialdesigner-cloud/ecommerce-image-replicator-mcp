@@ -5,7 +5,7 @@ import re
 from pathlib import Path
 
 from .images import load_image
-from .models import Delta, RunOptions
+from .models import REFERENCE_POLICY, Delta, ProductContext, RunOptions
 from .storage import atomic_write, digest, strict_json
 
 
@@ -59,7 +59,33 @@ def discover(root: Path) -> dict:
     return result
 
 
-def freeze(root: Path, options: RunOptions) -> dict:
+def stable_image_id(source: str, sha: str) -> str:
+    # Filename + content identity survives filtering and insertion of other images.
+    return f"{Path(source).as_posix()}:{sha[:16]}"
+
+
+def inspect_images(root: Path) -> list[dict]:
+    def fingerprint(source: str):
+        path = safe_path(root, source)
+        if not path.is_file() or path.stat().st_size > 50 * 1024 * 1024:
+            raise ValueError("Input must be a file of at most 50 MiB")
+        with path.open("rb") as stream:
+            return hashlib.file_digest(stream, "sha256").hexdigest()
+
+    return [
+        {
+            "source": source,
+            "order": order,
+            "image_id": stable_image_id(source, fingerprint(source)),
+        }
+        for paths in discover(root).values()
+        for order, source in enumerate(paths, 1)
+    ]
+
+
+def freeze(root: Path, options: RunOptions, *, version: int = 2) -> dict:
+    if version not in {1, 2}:
+        raise ValueError("Unsupported manifest version")
     root = root.resolve(strict=True)
     groups = discover(root)
     runtime = safe_path(root, ".replicator", exists=False)
@@ -105,16 +131,44 @@ def freeze(root: Path, options: RunOptions) -> dict:
             job.update(
                 group=group,
                 order=number,
-                image_id=f"{group}/{number}:{job['sha256'][:16]}",
-                delta=Delta.model_validate(delta).model_dump(),
+                image_id=(
+                    f"{group}/{number}:{job['sha256'][:16]}"
+                    if version == 1
+                    else stable_image_id(path, job["sha256"])
+                ),
+                delta=Delta.model_validate(delta).model_dump(
+                    exclude={"design"} if version == 1 else set()
+                ),
             )
             jobs.append(job)
-    manifest = {
-        "version": 1,
+    manifest: dict = {
+        "version": version,
         "jobs": jobs,
         "products": products,
         "brief": brief,
-        "options": options.model_dump(),
+        "options": options.model_dump(
+            include={"image_model", "concurrency"} if version == 1 else None
+        ),
     }
+    if version == 2:
+        manifest["alignment_policy"] = REFERENCE_POLICY
+        context_path = safe_path(root, "brief/design.json", exists=False)
+        context = ProductContext()
+        if context_path.exists():
+            frozen = snapshot("brief/design.json")
+            context = ProductContext.model_validate(
+                strict_json(Path(frozen["path"]).read_text(encoding="utf-8"))
+            )
+        manifest["product_context"] = context.model_dump()
+        if options.selected_image_ids is not None:
+            selected = set(options.selected_image_ids)
+            if len(selected) != len(options.selected_image_ids) or not selected <= {
+                j["image_id"] for j in jobs
+            }:
+                raise ValueError("Selected image IDs must be unique and present in inspect_inputs")
+            manifest["jobs"] = [job for job in jobs if job["image_id"] in selected]
+            manifest["options"]["selected_image_ids"] = [
+                job["image_id"] for job in manifest["jobs"]
+            ]
     manifest["thread_id"] = digest(manifest)
     return manifest

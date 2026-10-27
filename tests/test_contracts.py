@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 from PIL import Image
@@ -12,7 +13,7 @@ from image_replicator.storage import strict_json
 
 def test_natural_order_empty_deltas_and_snapshot(workspace):
     paths = discover(workspace)["images_1"]
-    assert [p.split("/")[-1] for p in paths] == ["1.png", "2.png", "10.png"]
+    assert [Path(p).name for p in paths] == ["1.png", "2.png", "10.png"]
     a = freeze(workspace, RunOptions())
     b = freeze(workspace, RunOptions())
     assert a["thread_id"] == b["thread_id"]

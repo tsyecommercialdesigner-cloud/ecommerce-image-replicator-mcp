@@ -27,6 +27,13 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["src/image_replicator"]
 
+[tool.hatch.build.targets.sdist]
+include = [
+  "/src", "/tests", "/scripts", "/docs",
+  "/pyproject.toml", "/uv.lock", "/README.md", "/MANUAL.md", "/LICENSE",
+  "/AGENTS.md", "/.env.example", "/.mcp.json.example",
+]
+
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
