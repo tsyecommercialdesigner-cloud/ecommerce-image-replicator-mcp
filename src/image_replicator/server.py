@@ -7,6 +7,7 @@ import hashlib
 import re
 import sys
 from contextlib import asynccontextmanager
+from importlib.metadata import version
 from pathlib import Path
 from typing import Any
 
@@ -373,7 +374,10 @@ def create_server(settings: Settings) -> MCPServer:
             await service.close()
 
     server = MCPServer(
-        "ecommerce-image-replicator", instructions=INSTRUCTIONS, version="0.1.0", lifespan=lifespan
+        "ecommerce-image-replicator",
+        instructions=INSTRUCTIONS,
+        version=version("ecommerce-image-replicator-mcp"),
+        lifespan=lifespan,
     )
 
     @server.resource("replicator://input-contract", mime_type="application/json")

@@ -1,25 +1,25 @@
 # 使用手册
 
-v0.1.0 已于2026-10-27 17:42（Asia/Shanghai）正式发布。本页按实际发布结果回填；标签内手册保留发布前快照，最新交付证据见本页和Release。
+v0.1.1 已于2026-10-27 18:20（Asia/Shanghai）正式发布。本页按实际发布结果回填；标签内手册保留发布前快照，最新交付证据见本页和Release。
 
 | 发布核对项 | 实际结果 |
 |---|---|
-| Release | [v0.1.0](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.0) |
-| 标签目标完整SHA | `726efe6ad27933656ca24214806043f794450196` |
-| PR及审查 | [PR #1](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/1)；维护代理审查，无独立人员审批；仓库未配置分支保护，按流程核对CI门禁 |
-| PR Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40482056320) |
-| 合入Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40482261058) |
-| 标签CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40482454707)，先草稿、核验后公开 |
-| 安装验证 | Windows Python 3.12.14，远端干净checkout及下载源码包锁定无开发依赖安装、wheel安装通过；8工具/1资源/1提示；未调用收费API |
+| Release | [v0.1.1](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.1) |
+| 标签完整SHA | `c85f396c559411a68bdd5a2cba4bbbe858ab3245` |
+| PR及审查 | [修复#3](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/3)、[目录#4](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/4)；维护代理审查，无独立人员审批 |
+| PR Windows/Linux CI | [修复通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40486497182)、[目录通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40486824660) |
+| 合入Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40487042057) |
+| 标签CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40487272872)，先草稿、核验后公开 |
+| 安装验证 | Windows Python 3.12.14，远端干净checkout及下载源码包锁定无开发依赖安装、wheel安装通过；8工具/1资源/1提示；无收费调用 |
 
-已下载核对4个附件的GitHub digest；两个包同时与SHA256SUMS一致，SOURCE_COMMIT与标签目标一致。
+本地131项测试通过、1项POSIX专项跳过，CI覆盖Windows/Linux。仓库未配置分支保护，门禁按流程核对。实际Host跨提升权限切换未实机联调。4个附件GitHub摘要及下载文件一致，两个包与SHA256SUMS一致，SOURCE_COMMIT与标签一致。
 
 | 正式附件 | SHA256 |
 |---|---|
-| [ecommerce_image_replicator_mcp-0.1.0-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/ecommerce_image_replicator_mcp-0.1.0-py3-none-any.whl) | `5fc8d7aaf47e001a45c2d1235d330be65b47bc4fc6d06efb8f00a3c8f0ec65da` |
-| [ecommerce_image_replicator_mcp-0.1.0.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/ecommerce_image_replicator_mcp-0.1.0.tar.gz) | `5ba5deaa7e6bc2a18601b4bac72085bec74a946d5c8db98de69670cc9d8727ca` |
-| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/SHA256SUMS) | `aff585a5aea772115f119769bf78a535d74b124e059b3bcfd9a50b5aa1ad3d5d` |
-| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.0/SOURCE_COMMIT) | `1014b0d80d49dd8f2714317149aeb08576871d4ae3a35435360cfac109637bfd` |
+| [ecommerce_image_replicator_mcp-0.1.1-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/ecommerce_image_replicator_mcp-0.1.1-py3-none-any.whl) | `1656dd7973d7f6d7a92c19116c7034f7160a46b61e039de838765608a6f1931a` |
+| [ecommerce_image_replicator_mcp-0.1.1.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/ecommerce_image_replicator_mcp-0.1.1.tar.gz) | `06eaabdf08c1a92bd2e6e84d8e4fa84c286e9971d902f7346e718712e2faf0a9` |
+| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/SHA256SUMS) | `5e9028bb84a68d1804a383aefb94bb8b5c0d62ce7e5ff26cfebc94ba88c7c3ba` |
+| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/SOURCE_COMMIT) | `88fbd95e3822b1a799818c341c662e49130aeb0cdd391821b65256287355cbbd` |
 
 ## 1. 环境准备
 
@@ -36,7 +36,7 @@ Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业�
 
 ## 2. 项目初始化
 
-以下为已发布v0.1.0的固定版本安装流程。
+以下为已发布v0.1.1的固定版本安装流程。
 先从仓库Release核对发布状态、Windows CI及附件SOURCE_COMMIT全文；完整SHA必须对应该标签。
 仓库访问需成员自己的GitHub权限，不能把令牌拼入URL。D盘及运行账号须有相应空间与读写权限。
 
@@ -45,9 +45,9 @@ $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path 'D:\MCP' -Force | Out-Null
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 if (Test-Path $ProjectDir) { throw '目录已存在，请使用更新流程。' }
-$ExpectedCommit = '726efe6ad27933656ca24214806043f794450196'
+$ExpectedCommit = 'c85f396c559411a68bdd5a2cba4bbbe858ab3245'
 if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA格式不正确，停止安装' }
-git clone --branch v0.1.0 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
+git clone --branch v0.1.1 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw 'clone 失败' }
 $ActualCommit = git -C $ProjectDir rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $ActualCommit -ne $ExpectedCommit) { throw '提交不匹配，停止安装' }
@@ -76,6 +76,8 @@ if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 ```
 
 工作区需已存在。成功输出包含8个工具、1个资源、1个提示；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
+
+现有用户可以继续显式指定原业务工作区；默认目录改名不代表自动迁移。不要只切换路径后丢弃原`.replicator`，其中包含任务与供应商恢复记录。
 
 ## 4. 客户端配置
 
@@ -147,11 +149,11 @@ if ($LASTEXITCODE -ne 0) { throw '无法记录原提交' }
 Write-Host "保留原提交：$PreviousCommit"
 $ExpectedCommit = Read-Host '粘贴目标Release的SOURCE_COMMIT完整40位SHA'
 if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA无效' }
-git -C $ProjectDir fetch origin tag v0.1.0
+git -C $ProjectDir fetch origin tag v0.1.1
 if ($LASTEXITCODE -ne 0) { throw '获取目标失败' }
-$TagCommit = git -C $ProjectDir rev-parse 'v0.1.0^{commit}'
+$TagCommit = git -C $ProjectDir rev-parse 'v0.1.1^{commit}'
 if ($LASTEXITCODE -ne 0 -or $TagCommit -ne $ExpectedCommit) { throw '标签与发布提交不一致' }
-git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.0
+git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.1
 if ($LASTEXITCODE -ne 0) { throw '切换失败' }
 uv --directory $ProjectDir sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '安装失败，不启动服务' }
@@ -251,3 +253,5 @@ v0.1.0在管理员环境首次启动时可能创建仅SYSTEM、Administrators及
 若出现`Workspace runtime access denied`，先停止使用该工作区的MCP，在普通Host账号终端运行`whoami /user`记录实际SID；由管理员检查目标目录的`icacls`和`Get-Acl`。确认账号和目录后，仅授予该账号对`.replicator`及子项的修改权限，保留原ACL。不要授予Everyone完全控制，不要删除数据库或任务记录。修复后在普通权限终端重新执行协议检查，再启用Host。
 
 `Cannot initialize workspace journal`也可能是磁盘空间或数据库锁问题，不应一律当作权限错误。保留原文件并检查相应条件。`Workspace directory not found`表示需要先创建业务工作区。
+
+已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。版本展示修正及一致性检查已纳入发布后的源码PR，尚未进入新的发布标签；不覆盖v0.1.1附件。

@@ -1,11 +1,20 @@
 import os
 import subprocess
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 import pytest
 
 from image_replicator import runtime
+
+
+def test_server_version_matches_installed_distribution(tmp_path):
+    from image_replicator.config import Settings
+    from image_replicator.server import create_server
+
+    server = create_server(Settings(project_root=tmp_path, workspace=tmp_path))
+    assert server.version == version("ecommerce-image-replicator-mcp")
 
 
 def test_existing_journal_and_private_configuration_preserved(tmp_path):
