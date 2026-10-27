@@ -5,6 +5,7 @@ import asyncio
 import copy
 import hashlib
 import re
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
@@ -19,7 +20,8 @@ from .inputs import discover, freeze, inspect_images, safe_path
 from .models import REFERENCE_POLICY, Delta, ProductContext, RevisionUpdate, RunOptions
 from .models import ReferenceReviewReport as ReviewReport
 from .provider import Provider, ProviderFailure, SubmissionUnknown
-from .storage import Journal, canonical, digest
+from .runtime import StartupError, open_journal
+from .storage import canonical, digest
 from .workflow import Workflow, validate_task_id
 from .workflow_v2 import ImageWorkflow, aggregate, result_key
 
@@ -59,10 +61,7 @@ vision request per artifact/plan. Batch and byte budgets remain operator-configu
 class Service:
     def __init__(self, settings: Settings):
         self.settings = settings
-        root = settings.workspace.resolve(strict=True)
-        runtime = safe_path(root, ".replicator", exists=False)
-        runtime.mkdir(exist_ok=True, mode=0o700)
-        self.journal = Journal(safe_path(root, ".replicator/journal.sqlite", exists=False))
+        self.journal = open_journal(settings.workspace)
         self.tasks: dict[str, asyncio.Task] = {}
 
     def manifest(self, thread_id: str):
@@ -545,10 +544,15 @@ def main():
     args = parser.parse_args()
     settings = Settings(
         args.project_root.resolve(strict=True),
-        args.workspace.resolve(strict=True),
+        args.workspace.absolute(),
         args.max_batch_images,
         args.max_request_bytes,
         args.max_output_tokens,
         tuple(args.download_host),
     )
-    create_server(settings).run(transport="stdio")
+    try:
+        server = create_server(settings)
+    except StartupError as exc:
+        print(f"Startup error: {exc}", file=sys.stderr)
+        raise SystemExit(2) from None
+    server.run(transport="stdio")

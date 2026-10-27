@@ -23,6 +23,8 @@ v0.1.0 已于2026-10-27 17:42（Asia/Shanghai）正式发布。本页按实际�
 
 ## 1. 环境准备
 
+使用与Host相同账号的普通PowerShell安装、检查和启动。安装父目录如需管理员授权，可单独准备该目录；不要长期以管理员身份运行Host。Windows运行目录继承业务工作区ACL，工作区应仅向需要访问任务数据的账号开放。
+
 Python 3.12+；开发与 CI 固定 Python 3.12、uv 0.12.23。官方 MCP Python SDK 锁定 2.3.0，
 服务类为 MCPServer；协议测试使用 2026-07-28 discover 流程、本地 stdio。
 Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业务 API 为 `ai.t8star.org`。
@@ -68,6 +70,7 @@ Unix 使用 `chmod 600 .env`。Agent 工作区按工作流契约放入输入，�
 CI job 超时设为15分钟。成员无需安装开发依赖即可执行下面的只读协议发现检查（45秒超时，不请求供应商）：
 
 ```powershell
+New-Item -ItemType Directory -Path 'D:\AgentWorkspace' -Force | Out-Null
 uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scripts/smoke.py --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\AgentWorkspace'
 if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 ```
@@ -240,3 +243,11 @@ partial 会返回已完成图片，needs_revision 可用 prepare_revision 只修
 - GitHub标签或权限错误：确认Release已公开、账号有仓库权限，并核对SOURCE_COMMIT；不可改装未核验开发HEAD。
 - Host无法发现：先执行smoke.py；模板只验证语法，Host产品、旧协议或CLI注册组合未联调。
 - 本地126项测试及12张真实复刻验收通过，不等于GitHub目标提交、Windows CI或发布安装已验收。
+
+### Windows运行目录拒绝访问
+
+v0.1.0在管理员环境首次启动时可能创建仅SYSTEM、Administrators及OWNER RIGHTS可访问的`.replicator`。v0.1.1对新目录改为继承工作区ACL；升级不会自动修复已有ACL，避免改变成员的访问策略。
+
+若出现`Workspace runtime access denied`，先停止使用该工作区的MCP，在普通Host账号终端运行`whoami /user`记录实际SID；由管理员检查目标目录的`icacls`和`Get-Acl`。确认账号和目录后，仅授予该账号对`.replicator`及子项的修改权限，保留原ACL。不要授予Everyone完全控制，不要删除数据库或任务记录。修复后在普通权限终端重新执行协议检查，再启用Host。
+
+`Cannot initialize workspace journal`也可能是磁盘空间或数据库锁问题，不应一律当作权限错误。保留原文件并检查相应条件。`Workspace directory not found`表示需要先创建业务工作区。
