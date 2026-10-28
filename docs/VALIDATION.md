@@ -1,5 +1,14 @@
 # 本地验证记录
 
+## 2026-10-28 手册补齐与升级/回滚保留验证
+
+Windows/Python3.12真实Git切换与锁定无开发依赖安装：v0.1.1→v0.1.2→v0.1.1通过。
+对比.env、业务文件、SQLite/checkpoint及原产物的SHA256与Owner/Group/DACL，切换安装前后保持；
+升级生成的任务索引在回滚时保留。两个替身任务分别覆盖已完成与待完成，恢复未增加提交。
+实际SDK子进程完成固定模式/任务模式的发现、旧任务导入与查询；无真实供应商调用。
+报告及复现范围见[保留验证](UPGRADE-PRESERVATION.md)。文档十节、JSON/TOML与模板一致性、
+PowerShell示例AST解析及本地链接通过；未执行用户真实升级、Host配置或跨权限账号联调。
+
 ## 2026-10-28 任务级工作区（当前源码，尚未发布）
 
 `uv run --no-sync python scripts/check.py`：格式、lint、mypy、秘密检查通过；145测试通过，

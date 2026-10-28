@@ -1,0 +1,2090 @@
+{
+  "version": "0.1.2",
+  "source_commit": "036ef5e3246ce32f23ddd8138284fc1d18f357ed",
+  "tools": [
+    {
+      "name": "inspect_inputs",
+      "description": "Read input order in an explicit workspace (or fixed default); no API calls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Workspace"
+          }
+        },
+        "title": "inspect_inputsArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "inspect_inputsDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "prepare_run",
+      "description": "Freeze inputs and return a workspace-bound run_id; no API calls.",
+      "inputSchema": {
+        "type": "object",
+        "$defs": {
+          "RunOptions": {
+            "additionalProperties": false,
+            "properties": {
+              "image_model": {
+                "default": "gpt-image-2.5-flare",
+                "description": "Model family; the prepared canvas selects base (<=1024), -2k (<=2048), or -4k (<=4096) automatically.",
+                "enum": [
+                  "gpt-image-2.5-flare",
+                  "gpt-image-2.5-sunburst"
+                ],
+                "title": "Image Model",
+                "type": "string"
+              },
+              "concurrency": {
+                "default": 2,
+                "maximum": 8,
+                "minimum": 1,
+                "title": "Concurrency",
+                "type": "integer"
+              },
+              "selected_image_ids": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "minItems": 1,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Selected Image Ids"
+              },
+              "review_mode": {
+                "default": "manual",
+                "enum": [
+                  "manual",
+                  "vision"
+                ],
+                "title": "Review Mode",
+                "type": "string"
+              },
+              "max_visual_revisions": {
+                "default": 0,
+                "maximum": 5,
+                "minimum": 0,
+                "title": "Max Visual Revisions",
+                "type": "integer"
+              }
+            },
+            "title": "RunOptions",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "options": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/RunOptions"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "workspace": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Workspace"
+          }
+        },
+        "title": "prepare_runArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "prepare_runDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "import_run",
+      "description": "Bind an existing task without generating; use when resuming legacy tasks in task mode.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "workspace": {
+            "title": "Workspace",
+            "type": "string"
+          },
+          "thread_id": {
+            "title": "Thread Id",
+            "type": "string"
+          }
+        },
+        "required": [
+          "workspace",
+          "thread_id"
+        ],
+        "title": "import_runArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "import_runDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "execute_run",
+      "description": "Start/resume the bound run. This authorizes paid LLM and image API calls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thread Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          }
+        },
+        "title": "execute_runArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "execute_runDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_run",
+      "description": "Read bound task progress and workspace-relative artifacts; no supplier calls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thread Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          }
+        },
+        "title": "get_runArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_runDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "get_design",
+      "description": "Read design inside the bound task; no API calls.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "image_id": {
+            "title": "Image Id",
+            "type": "string"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thread Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "image_id"
+        ],
+        "title": "get_designArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "get_designDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "record_review",
+      "description": "Record artifact-bound checks in the task's original workspace; no API calls.",
+      "inputSchema": {
+        "type": "object",
+        "$defs": {
+          "ReferenceReviewReport": {
+            "additionalProperties": false,
+            "properties": {
+              "image_id": {
+                "title": "Image Id",
+                "type": "string"
+              },
+              "artifact_sha256": {
+                "pattern": "^[a-f0-9]{64}$",
+                "title": "Artifact Sha256",
+                "type": "string"
+              },
+              "design_sha256": {
+                "pattern": "^[a-f0-9]{64}$",
+                "title": "Design Sha256",
+                "type": "string"
+              },
+              "checks": {
+                "items": {
+                  "$ref": "#/$defs/ReviewCheck"
+                },
+                "title": "Checks",
+                "type": "array"
+              },
+              "reference_sha256": {
+                "pattern": "^[a-f0-9]{64}$",
+                "title": "Reference Sha256",
+                "type": "string"
+              }
+            },
+            "required": [
+              "image_id",
+              "artifact_sha256",
+              "design_sha256",
+              "checks",
+              "reference_sha256"
+            ],
+            "title": "ReferenceReviewReport",
+            "type": "object"
+          },
+          "ReviewCheck": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "title": "Id",
+                "type": "string"
+              },
+              "verdict": {
+                "enum": [
+                  "pass",
+                  "fail",
+                  "uncertain"
+                ],
+                "title": "Verdict",
+                "type": "string"
+              },
+              "evidence": {
+                "maxLength": 4000,
+                "minLength": 1,
+                "title": "Evidence",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "verdict",
+              "evidence"
+            ],
+            "title": "ReviewCheck",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "report": {
+            "$ref": "#/$defs/ReferenceReviewReport"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thread Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "report"
+        ],
+        "title": "record_reviewArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "record_reviewDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "prepare_revision",
+      "description": "Freeze a revision in the parent's workspace; return a new run_id, no API calls.\n\n        Deltas replace the parent's delta completely. v2 keeps its original revision budget.\n        ",
+      "inputSchema": {
+        "type": "object",
+        "$defs": {
+          "Box": {
+            "additionalProperties": false,
+            "description": "Coordinates in the original reference image, normalized to 0..1000.",
+            "properties": {
+              "x": {
+                "maximum": 1000,
+                "minimum": 0,
+                "title": "X",
+                "type": "number"
+              },
+              "y": {
+                "maximum": 1000,
+                "minimum": 0,
+                "title": "Y",
+                "type": "number"
+              },
+              "width": {
+                "exclusiveMinimum": 0,
+                "maximum": 1000,
+                "title": "Width",
+                "type": "number"
+              },
+              "height": {
+                "exclusiveMinimum": 0,
+                "maximum": 1000,
+                "title": "Height",
+                "type": "number"
+              }
+            },
+            "required": [
+              "x",
+              "y",
+              "width",
+              "height"
+            ],
+            "title": "Box",
+            "type": "object"
+          },
+          "BrandStyle": {
+            "additionalProperties": false,
+            "properties": {
+              "palette": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "maxLength": 200,
+                      "minLength": 1,
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Palette"
+              },
+              "text_color": {
+                "anyOf": [
+                  {
+                    "description": "Final foreground color for structured text blocks, selected by Agent for product/brand theme and legibility. Replaces reference CSS color while preserving boxes and typography.",
+                    "pattern": "^#[0-9A-Fa-f]{6}$",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Text Color"
+              },
+              "tone": {
+                "anyOf": [
+                  {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Tone"
+              },
+              "art_style": {
+                "anyOf": [
+                  {
+                    "description": "Set only for an explicit user art-style request. Otherwise omit: preserve each reference's artistic medium even when palette changes.",
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Art Style"
+              },
+              "typography": {
+                "anyOf": [
+                  {
+                    "maxLength": 2000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Typography"
+              }
+            },
+            "title": "BrandStyle",
+            "type": "object"
+          },
+          "CopyReplacement": {
+            "additionalProperties": false,
+            "properties": {
+              "old": {
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Old",
+                "type": "string"
+              },
+              "new": {
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "New",
+                "type": "string"
+              },
+              "source": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Source",
+                "type": "string"
+              }
+            },
+            "required": [
+              "old",
+              "new",
+              "source"
+            ],
+            "title": "CopyReplacement",
+            "type": "object"
+          },
+          "Delta": {
+            "additionalProperties": false,
+            "properties": {
+              "texts": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/TextBlock"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Texts"
+              },
+              "text_replacements": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/CopyReplacement"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Text Replacements"
+              },
+              "scene": {
+                "anyOf": [
+                  {
+                    "description": "Product/brand appearance notes only; cannot change composition, objects, counts, roles, actions or relationships.",
+                    "maxLength": 16000,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Scene"
+              },
+              "instruction": {
+                "default": "",
+                "description": "Additional product/brand adaptation only. Never overrides protected reference scene structure.",
+                "maxLength": 16000,
+                "title": "Instruction",
+                "type": "string"
+              },
+              "design": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/DesignOverrides"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              }
+            },
+            "title": "Delta",
+            "type": "object"
+          },
+          "DesignOverrides": {
+            "additionalProperties": false,
+            "properties": {
+              "reference_mode": {
+                "anyOf": [
+                  {
+                    "const": "full",
+                    "type": "string"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Reference Mode"
+              },
+              "product_attributes": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/ProductAttribute"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Product Attributes"
+              },
+              "brand_style": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/BrandStyle"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null
+              },
+              "objects": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/SceneObject"
+                    },
+                    "maxItems": 0,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Objects"
+              },
+              "layout_regions": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "$ref": "#/$defs/LayoutRegion"
+                    },
+                    "maxItems": 0,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Layout Regions"
+              },
+              "forbidden_elements": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "maxItems": 0,
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Forbidden Elements"
+              },
+              "checks": {
+                "anyOf": [
+                  {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "default": null,
+                "title": "Checks"
+              }
+            },
+            "title": "DesignOverrides",
+            "type": "object"
+          },
+          "LayoutRegion": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+                "title": "Id",
+                "type": "string"
+              },
+              "purpose": {
+                "maxLength": 1000,
+                "minLength": 1,
+                "title": "Purpose",
+                "type": "string"
+              },
+              "box": {
+                "$ref": "#/$defs/Box"
+              }
+            },
+            "required": [
+              "id",
+              "purpose",
+              "box"
+            ],
+            "title": "LayoutRegion",
+            "type": "object"
+          },
+          "ProductAttribute": {
+            "additionalProperties": false,
+            "description": "Intrinsic attributes of the featured product, never scene objects or relations.",
+            "properties": {
+              "property": {
+                "enum": [
+                  "name",
+                  "dimensions",
+                  "material",
+                  "color",
+                  "pattern",
+                  "texture",
+                  "specification"
+                ],
+                "title": "Property",
+                "type": "string"
+              },
+              "value": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Value",
+                "type": "string"
+              },
+              "source": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Source",
+                "type": "string"
+              }
+            },
+            "required": [
+              "property",
+              "value",
+              "source"
+            ],
+            "title": "ProductAttribute",
+            "type": "object"
+          },
+          "ProductContext": {
+            "additionalProperties": false,
+            "properties": {
+              "facts": {
+                "items": {
+                  "$ref": "#/$defs/ProductFact"
+                },
+                "title": "Facts",
+                "type": "array"
+              },
+              "forbidden_claims": {
+                "items": {
+                  "type": "string"
+                },
+                "title": "Forbidden Claims",
+                "type": "array"
+              },
+              "defaults": {
+                "$ref": "#/$defs/Delta"
+              }
+            },
+            "title": "ProductContext",
+            "type": "object"
+          },
+          "ProductFact": {
+            "additionalProperties": false,
+            "properties": {
+              "value": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Value",
+                "type": "string"
+              },
+              "source": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Source",
+                "type": "string"
+              }
+            },
+            "required": [
+              "value",
+              "source"
+            ],
+            "title": "ProductFact",
+            "type": "object"
+          },
+          "RevisionUpdate": {
+            "additionalProperties": false,
+            "properties": {
+              "image_id": {
+                "title": "Image Id",
+                "type": "string"
+              },
+              "delta": {
+                "$ref": "#/$defs/Delta"
+              }
+            },
+            "required": [
+              "image_id",
+              "delta"
+            ],
+            "title": "RevisionUpdate",
+            "type": "object"
+          },
+          "SceneObject": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+                "title": "Id",
+                "type": "string"
+              },
+              "description": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Description",
+                "type": "string"
+              },
+              "count": {
+                "maximum": 100,
+                "minimum": 1,
+                "title": "Count",
+                "type": "integer"
+              },
+              "placement": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Placement",
+                "type": "string"
+              },
+              "action": {
+                "maxLength": 2000,
+                "minLength": 1,
+                "title": "Action",
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "description",
+              "count",
+              "placement",
+              "action"
+            ],
+            "title": "SceneObject",
+            "type": "object"
+          },
+          "TextBlock": {
+            "additionalProperties": false,
+            "properties": {
+              "content": {
+                "maxLength": 4000,
+                "minLength": 1,
+                "title": "Content",
+                "type": "string"
+              },
+              "box": {
+                "$ref": "#/$defs/Box"
+              },
+              "css": {
+                "maxLength": 2000,
+                "title": "Css",
+                "type": "string"
+              }
+            },
+            "required": [
+              "content",
+              "box",
+              "css"
+            ],
+            "title": "TextBlock",
+            "type": "object"
+          }
+        },
+        "properties": {
+          "updates": {
+            "items": {
+              "$ref": "#/$defs/RevisionUpdate"
+            },
+            "title": "Updates",
+            "type": "array"
+          },
+          "parent_thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parent Thread Id"
+          },
+          "legacy_revision_budget": {
+            "default": 0,
+            "title": "Legacy Revision Budget",
+            "type": "integer"
+          },
+          "product_context": {
+            "anyOf": [
+              {
+                "$ref": "#/$defs/ProductContext"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null
+          },
+          "parent_run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Parent Run Id"
+          }
+        },
+        "required": [
+          "updates"
+        ],
+        "title": "prepare_revisionArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "prepare_revisionDictOutput",
+        "type": "object"
+      }
+    },
+    {
+      "name": "reconcile_submission",
+      "description": "Bind a verified supplier task_id to the bound unknown submission; never resubmit.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "title": "Index",
+            "type": "integer"
+          },
+          "task_id": {
+            "title": "Task Id",
+            "type": "string"
+          },
+          "thread_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Thread Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "default": null,
+            "title": "Run Id"
+          }
+        },
+        "required": [
+          "index",
+          "task_id"
+        ],
+        "title": "reconcile_submissionArguments"
+      },
+      "outputSchema": {
+        "additionalProperties": true,
+        "title": "reconcile_submissionDictOutput",
+        "type": "object"
+      }
+    }
+  ],
+  "schemas": {
+    "delta_item_schema": {
+      "$defs": {
+        "Box": {
+          "additionalProperties": false,
+          "description": "Coordinates in the original reference image, normalized to 0..1000.",
+          "properties": {
+            "height": {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "title": "Width",
+              "type": "number"
+            },
+            "x": {
+              "maximum": 1000,
+              "minimum": 0,
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "maximum": 1000,
+              "minimum": 0,
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "title": "Box",
+          "type": "object"
+        },
+        "BrandStyle": {
+          "additionalProperties": false,
+          "properties": {
+            "art_style": {
+              "anyOf": [
+                {
+                  "description": "Set only for an explicit user art-style request. Otherwise omit: preserve each reference's artistic medium even when palette changes.",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Art Style"
+            },
+            "palette": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Palette"
+            },
+            "text_color": {
+              "anyOf": [
+                {
+                  "description": "Final foreground color for structured text blocks, selected by Agent for product/brand theme and legibility. Replaces reference CSS color while preserving boxes and typography.",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Text Color"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Tone"
+            },
+            "typography": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Typography"
+            }
+          },
+          "title": "BrandStyle",
+          "type": "object"
+        },
+        "CopyReplacement": {
+          "additionalProperties": false,
+          "properties": {
+            "new": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "title": "New",
+              "type": "string"
+            },
+            "old": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "title": "Old",
+              "type": "string"
+            },
+            "source": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          "required": [
+            "old",
+            "new",
+            "source"
+          ],
+          "title": "CopyReplacement",
+          "type": "object"
+        },
+        "DesignOverrides": {
+          "additionalProperties": false,
+          "properties": {
+            "brand_style": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/BrandStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "checks": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Checks"
+            },
+            "forbidden_elements": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Forbidden Elements"
+            },
+            "layout_regions": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/LayoutRegion"
+                  },
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Layout Regions"
+            },
+            "objects": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/SceneObject"
+                  },
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Objects"
+            },
+            "product_attributes": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/ProductAttribute"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Product Attributes"
+            },
+            "reference_mode": {
+              "anyOf": [
+                {
+                  "const": "full",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Reference Mode"
+            }
+          },
+          "title": "DesignOverrides",
+          "type": "object"
+        },
+        "LayoutRegion": {
+          "additionalProperties": false,
+          "properties": {
+            "box": {
+              "$ref": "#/$defs/Box"
+            },
+            "id": {
+              "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "purpose": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "title": "Purpose",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "purpose",
+            "box"
+          ],
+          "title": "LayoutRegion",
+          "type": "object"
+        },
+        "ProductAttribute": {
+          "additionalProperties": false,
+          "description": "Intrinsic attributes of the featured product, never scene objects or relations.",
+          "properties": {
+            "property": {
+              "enum": [
+                "name",
+                "dimensions",
+                "material",
+                "color",
+                "pattern",
+                "texture",
+                "specification"
+              ],
+              "title": "Property",
+              "type": "string"
+            },
+            "source": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Source",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "property",
+            "value",
+            "source"
+          ],
+          "title": "ProductAttribute",
+          "type": "object"
+        },
+        "SceneObject": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Action",
+              "type": "string"
+            },
+            "count": {
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Count",
+              "type": "integer"
+            },
+            "description": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Description",
+              "type": "string"
+            },
+            "id": {
+              "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "placement": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Placement",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "count",
+            "placement",
+            "action"
+          ],
+          "title": "SceneObject",
+          "type": "object"
+        },
+        "TextBlock": {
+          "additionalProperties": false,
+          "properties": {
+            "box": {
+              "$ref": "#/$defs/Box"
+            },
+            "content": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "title": "Content",
+              "type": "string"
+            },
+            "css": {
+              "maxLength": 2000,
+              "title": "Css",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "box",
+            "css"
+          ],
+          "title": "TextBlock",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "design": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/DesignOverrides"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "instruction": {
+          "default": "",
+          "description": "Additional product/brand adaptation only. Never overrides protected reference scene structure.",
+          "maxLength": 16000,
+          "title": "Instruction",
+          "type": "string"
+        },
+        "scene": {
+          "anyOf": [
+            {
+              "description": "Product/brand appearance notes only; cannot change composition, objects, counts, roles, actions or relationships.",
+              "maxLength": 16000,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Scene"
+        },
+        "text_replacements": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/CopyReplacement"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Text Replacements"
+        },
+        "texts": {
+          "anyOf": [
+            {
+              "items": {
+                "$ref": "#/$defs/TextBlock"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Texts"
+        }
+      },
+      "title": "Delta",
+      "type": "object"
+    },
+    "product_context_schema": {
+      "$defs": {
+        "Box": {
+          "additionalProperties": false,
+          "description": "Coordinates in the original reference image, normalized to 0..1000.",
+          "properties": {
+            "height": {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "title": "Height",
+              "type": "number"
+            },
+            "width": {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "title": "Width",
+              "type": "number"
+            },
+            "x": {
+              "maximum": 1000,
+              "minimum": 0,
+              "title": "X",
+              "type": "number"
+            },
+            "y": {
+              "maximum": 1000,
+              "minimum": 0,
+              "title": "Y",
+              "type": "number"
+            }
+          },
+          "required": [
+            "x",
+            "y",
+            "width",
+            "height"
+          ],
+          "title": "Box",
+          "type": "object"
+        },
+        "BrandStyle": {
+          "additionalProperties": false,
+          "properties": {
+            "art_style": {
+              "anyOf": [
+                {
+                  "description": "Set only for an explicit user art-style request. Otherwise omit: preserve each reference's artistic medium even when palette changes.",
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Art Style"
+            },
+            "palette": {
+              "anyOf": [
+                {
+                  "items": {
+                    "maxLength": 200,
+                    "minLength": 1,
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Palette"
+            },
+            "text_color": {
+              "anyOf": [
+                {
+                  "description": "Final foreground color for structured text blocks, selected by Agent for product/brand theme and legibility. Replaces reference CSS color while preserving boxes and typography.",
+                  "pattern": "^#[0-9A-Fa-f]{6}$",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Text Color"
+            },
+            "tone": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Tone"
+            },
+            "typography": {
+              "anyOf": [
+                {
+                  "maxLength": 2000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Typography"
+            }
+          },
+          "title": "BrandStyle",
+          "type": "object"
+        },
+        "CopyReplacement": {
+          "additionalProperties": false,
+          "properties": {
+            "new": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "title": "New",
+              "type": "string"
+            },
+            "old": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "title": "Old",
+              "type": "string"
+            },
+            "source": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Source",
+              "type": "string"
+            }
+          },
+          "required": [
+            "old",
+            "new",
+            "source"
+          ],
+          "title": "CopyReplacement",
+          "type": "object"
+        },
+        "Delta": {
+          "additionalProperties": false,
+          "properties": {
+            "design": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/DesignOverrides"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "instruction": {
+              "default": "",
+              "description": "Additional product/brand adaptation only. Never overrides protected reference scene structure.",
+              "maxLength": 16000,
+              "title": "Instruction",
+              "type": "string"
+            },
+            "scene": {
+              "anyOf": [
+                {
+                  "description": "Product/brand appearance notes only; cannot change composition, objects, counts, roles, actions or relationships.",
+                  "maxLength": 16000,
+                  "minLength": 1,
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Scene"
+            },
+            "text_replacements": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/CopyReplacement"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Text Replacements"
+            },
+            "texts": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/TextBlock"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Texts"
+            }
+          },
+          "title": "Delta",
+          "type": "object"
+        },
+        "DesignOverrides": {
+          "additionalProperties": false,
+          "properties": {
+            "brand_style": {
+              "anyOf": [
+                {
+                  "$ref": "#/$defs/BrandStyle"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null
+            },
+            "checks": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Checks"
+            },
+            "forbidden_elements": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Forbidden Elements"
+            },
+            "layout_regions": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/LayoutRegion"
+                  },
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Layout Regions"
+            },
+            "objects": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/SceneObject"
+                  },
+                  "maxItems": 0,
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Objects"
+            },
+            "product_attributes": {
+              "anyOf": [
+                {
+                  "items": {
+                    "$ref": "#/$defs/ProductAttribute"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Product Attributes"
+            },
+            "reference_mode": {
+              "anyOf": [
+                {
+                  "const": "full",
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "title": "Reference Mode"
+            }
+          },
+          "title": "DesignOverrides",
+          "type": "object"
+        },
+        "LayoutRegion": {
+          "additionalProperties": false,
+          "properties": {
+            "box": {
+              "$ref": "#/$defs/Box"
+            },
+            "id": {
+              "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "purpose": {
+              "maxLength": 1000,
+              "minLength": 1,
+              "title": "Purpose",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "purpose",
+            "box"
+          ],
+          "title": "LayoutRegion",
+          "type": "object"
+        },
+        "ProductAttribute": {
+          "additionalProperties": false,
+          "description": "Intrinsic attributes of the featured product, never scene objects or relations.",
+          "properties": {
+            "property": {
+              "enum": [
+                "name",
+                "dimensions",
+                "material",
+                "color",
+                "pattern",
+                "texture",
+                "specification"
+              ],
+              "title": "Property",
+              "type": "string"
+            },
+            "source": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Source",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "property",
+            "value",
+            "source"
+          ],
+          "title": "ProductAttribute",
+          "type": "object"
+        },
+        "ProductFact": {
+          "additionalProperties": false,
+          "properties": {
+            "source": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Source",
+              "type": "string"
+            },
+            "value": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Value",
+              "type": "string"
+            }
+          },
+          "required": [
+            "value",
+            "source"
+          ],
+          "title": "ProductFact",
+          "type": "object"
+        },
+        "SceneObject": {
+          "additionalProperties": false,
+          "properties": {
+            "action": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Action",
+              "type": "string"
+            },
+            "count": {
+              "maximum": 100,
+              "minimum": 1,
+              "title": "Count",
+              "type": "integer"
+            },
+            "description": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Description",
+              "type": "string"
+            },
+            "id": {
+              "pattern": "^[a-zA-Z0-9_-]{1,64}$",
+              "title": "Id",
+              "type": "string"
+            },
+            "placement": {
+              "maxLength": 2000,
+              "minLength": 1,
+              "title": "Placement",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "description",
+            "count",
+            "placement",
+            "action"
+          ],
+          "title": "SceneObject",
+          "type": "object"
+        },
+        "TextBlock": {
+          "additionalProperties": false,
+          "properties": {
+            "box": {
+              "$ref": "#/$defs/Box"
+            },
+            "content": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "title": "Content",
+              "type": "string"
+            },
+            "css": {
+              "maxLength": 2000,
+              "title": "Css",
+              "type": "string"
+            }
+          },
+          "required": [
+            "content",
+            "box",
+            "css"
+          ],
+          "title": "TextBlock",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "defaults": {
+          "$ref": "#/$defs/Delta"
+        },
+        "facts": {
+          "items": {
+            "$ref": "#/$defs/ProductFact"
+          },
+          "title": "Facts",
+          "type": "array"
+        },
+        "forbidden_claims": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Forbidden Claims",
+          "type": "array"
+        }
+      },
+      "title": "ProductContext",
+      "type": "object"
+    },
+    "review_schema": {
+      "$defs": {
+        "ReviewCheck": {
+          "additionalProperties": false,
+          "properties": {
+            "evidence": {
+              "maxLength": 4000,
+              "minLength": 1,
+              "title": "Evidence",
+              "type": "string"
+            },
+            "id": {
+              "title": "Id",
+              "type": "string"
+            },
+            "verdict": {
+              "enum": [
+                "pass",
+                "fail",
+                "uncertain"
+              ],
+              "title": "Verdict",
+              "type": "string"
+            }
+          },
+          "required": [
+            "id",
+            "verdict",
+            "evidence"
+          ],
+          "title": "ReviewCheck",
+          "type": "object"
+        }
+      },
+      "additionalProperties": false,
+      "properties": {
+        "artifact_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Artifact Sha256",
+          "type": "string"
+        },
+        "checks": {
+          "items": {
+            "$ref": "#/$defs/ReviewCheck"
+          },
+          "title": "Checks",
+          "type": "array"
+        },
+        "design_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Design Sha256",
+          "type": "string"
+        },
+        "image_id": {
+          "title": "Image Id",
+          "type": "string"
+        },
+        "reference_sha256": {
+          "pattern": "^[a-f0-9]{64}$",
+          "title": "Reference Sha256",
+          "type": "string"
+        }
+      },
+      "required": [
+        "image_id",
+        "artifact_sha256",
+        "design_sha256",
+        "checks",
+        "reference_sha256"
+      ],
+      "title": "ReferenceReviewReport",
+      "type": "object"
+    }
+  }
+}

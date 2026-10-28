@@ -26,7 +26,8 @@ v0.1.2 已于 2026-10-28 08:26（Asia/Shanghai）正式发布。本页按实际�
 
 使用与Host相同账号的普通PowerShell安装、检查和启动。安装父目录如需管理员授权，可单独准备该目录；不要长期以管理员身份运行Host。Windows运行目录继承业务工作区ACL，工作区应仅向需要访问任务数据的账号开放。
 
-Python 3.12+；开发与 CI 固定 Python 3.12、uv 0.12.23。官方 MCP Python SDK 锁定 2.3.0，
+建议普通 PowerShell 7、Git 2.23+（需支持 switch）、Python 3.12 和 uv 0.12.23。
+项目声明 Python 3.12+；CI 固定 Python 3.12、uv 0.12.23。官方 MCP Python SDK 锁定 2.3.0，
 服务类为 MCPServer；协议测试使用 2026-07-28 discover 流程、本地 stdio。
 Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业务 API 为 `ai.t8star.org`。
 
@@ -34,6 +35,30 @@ Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业�
 逐字段 `.env` → 进程 → Windows 当前用户环境，仅缺失可回退；空值、重复、语法错误、
 读取失败均报错。不展开变量，不执行代码；限制为服务账号及必要管理员可读取，修改后重启。
 安装根固定通过 `--project-root` 指定。已发布 v0.1.1 用 `--workspace` 固定业务目录；v0.1.2 支持任务级目录，见第4节及下方说明，均不依赖 Host cwd。
+
+先检查本机命令；任何一项不可用时先安装对应工具并重新打开普通终端：
+
+```powershell
+$PSVersionTable.PSVersion
+Get-Command git, uv -ErrorAction Stop
+ git --version
+if ($LASTEXITCODE -ne 0) { throw 'Git不可用' }
+uv --version
+if ($LASTEXITCODE -ne 0) { throw 'uv不可用' }
+```
+
+GitHub与PyPI用于下载源码和依赖，供应商域名用于业务请求，两者分别排障。
+需要代理时沿用组织已核准的Git/uv代理与CA配置，不关闭TLS校验。此项目无需Git LFS或submodule。
+
+| 凭据 | 用途及要求 |
+|---|---|
+| `ZHENZHEN_GEMINILLM_API_KEY` | 反推/可选视觉评审；当前执行入口统一要求此字段 |
+| `ZHENZHEN_GPTIMAGEGEN_API_KEY` | 绘图提交、查询和下载；当前执行入口统一要求此字段 |
+
+值须为非空、非纯空白字符串，不含CR/LF/NUL；不假设固定密钥前缀。以UTF-8保存 `.env`。
+文件权限可用 `Get-Acl -LiteralPath 'D:\MCP\ecommerce-image-replicator-mcp\.env'` 检查；
+仅实际运行账号和必要管理员应有访问权限。修改后重启Host管理的MCP子进程。
+用户级环境按MCP实际运行账号读取，旧父进程继承的进程值优先于更新后的用户级值；必要时重启Host。
 
 ## 2. 项目初始化
 
@@ -55,12 +80,28 @@ if ($LASTEXITCODE -ne 0 -or $ActualCommit -ne $ExpectedCommit) { throw '提交�
 Set-Location $ProjectDir
 uv sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '安装失败' }
-if (!(Test-Path '.env')) { Copy-Item '.env.example' '.env' -ErrorAction Stop }
-notepad '.env'
+# 安装完成；凭据配置按下方两种方式选择，不自动创建空值.env。
 ```
 
-手动填写私有密钥，不修改空值模板。Windows 使用文件安全属性限制 `.env` 读取账号；
-Unix 使用 `chmod 600 .env`。Agent 工作区按工作流契约放入输入，不覆盖已有业务文件。
+凭据配置二选一：
+
+- **已有用户级/进程环境变量**：不创建含空凭据字段的 `.env`。若已有 `.env`，保留它；需要某字段回退环境时，手工移除该字段定义，而不是把值留空。不要打印密钥或重设用户环境变量。
+- **使用安装根 `.env`**：执行以下命令，仅在文件不存在时复制；在编辑器中填写实际密钥，保留已有配置，不修改空值模板。
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
+$EnvPath = Join-Path $ProjectDir '.env'
+if (!(Test-Path -LiteralPath $EnvPath)) {
+    [IO.File]::Copy((Join-Path $ProjectDir '.env.example'), $EnvPath, $false)
+}
+notepad $EnvPath
+if ($LASTEXITCODE -ne 0) { throw '编辑器启动失败，请手工编辑现有.env' }
+```
+
+空字段、重复字段或文件读取/解析失败会阻止执行，不会回退旧密钥。
+Windows使用文件安全属性限制实际账号访问；Unix使用 `chmod 600 .env`。
+Agent工作区按第8节准备输入；不覆盖已有业务文件。
 
 ## 3. 可用性测试
 
@@ -76,8 +117,23 @@ if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 ```
 
 任务模式启动无需业务目录；选择业务目录时该目录需已存在。成功输出包含9个工具、1个资源、1个提示；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
+默认任务模式的smoke不验证真实密钥、工作区写权限或供应商认证；真实密钥在执行/供应商查询入口读取校验。
 
 现有用户可以继续显式指定原业务工作区；默认目录改名不代表自动迁移。不要只切换路径后丢弃原`.replicator`，其中包含任务与供应商恢复记录。
+
+升级保留专项已于2026-10-28在Windows/Python3.12隔离环境通过：干净Git副本依次安装
+v0.1.1→v0.1.2→v0.1.1，验证测试.env的内容/ACL、业务目录文件/ACL、任务索引、原产物保留；
+原待完成任务按同一供应商编号续查，未新增提交。仅使用假密钥和替身供应商。
+可复现脚本位于最新维护分支（不在原v0.1.2标签内）：
+
+```powershell
+uv run --no-sync python scripts/verify_upgrade.py
+if ($LASTEXITCODE -ne 0) { throw '升级保留验证失败' }
+```
+
+这是维护者验证命令，不在成员真实安装目录执行。脚本要求本地已有两个正式标签，检查固定SHA，
+在仓库.cache中克隆并安装，finally清理临时环境，报告保留在.cache/validation。
+详细范围见[保留验证记录](docs/UPGRADE-PRESERVATION.md)；不覆盖真实Host跨权限切换及任意未来版本降级。
 
 ## 4. 客户端配置（v0.1.2）
 
@@ -120,9 +176,41 @@ args = [
 ]
 ```
 
-保存后按实际 Host 操作重启、检查能力发现，再绑定任务 Agent。不要求 cwd。
-Claude-3p、Cherry Studio、DSH web/desktop/multica 及各 Host CLI 的 PowerShell/Bash/Zsh
-注册流程未验证，本版不声明支持或提供猜测的补丁。仅本地 stdio 接入。
+### 配置覆盖与生效
+
+本版交付手工配置，未认证任何具体Host版本的端到端兼容；下列“未验证”不表示Host本身不支持。
+2026-10-28核对[Codex官方MCP文档](https://developers.openai.com/codex/mcp/)与
+[Claude Code官方MCP文档](https://code.claude.com/docs/en/mcp)，schema依据和实际项目联调分开记录。
+
+| 清单项 | 本项目交付范围/作用域 | 验证状态 |
+|---|---|---|
+| 本地MCP JSON | 上述完整模板，仅合并目标服务，保留其他服务及认证 | JSON解析及服务端stdio通过 |
+| Codex TOML | 上述mcp_servers表；可用于用户级或受信任项目级配置 | 字段依据官方文档；本项目Host版本未实测 |
+| Claude Code JSON | 上述mcpServers对象用于项目作用域；不要整文件覆盖其他服务 | 结构依据官方文档；本项目Host版本未实测 |
+| Claude-3p JSON | 未取得具体产品版本/schema，暂不交付专属片段 | 未验证，不与Claude Code混用 |
+| DSH profile YAML | web/desktop/multica三profile均未核对实际插件版本 | 暂不交付补丁，不猜测CLI |
+| CLI添加流程 | Codex、Claude Code、DSH在PowerShell 7/Bash/Zsh的九种组合均未做项目实测 | 本版均采用手工配置；无注册成功声明 |
+| Cherry Studio | 未核对具体版本的导入及助手绑定流程 | 本版不交付专属步骤 |
+
+Codex：合并TOML后保存并重启实际客户端/服务；在 `/mcp` 查看连接，确认没有禁用该服务，
+在当前对话让Agent列出本服务工具并调用不收费的inspect_inputs。用户级配置适合跨项目共享。
+Claude Code：合并项目JSON后重启会话，按客户端提示批准可信项目服务，在 `/mcp` 检查连接，
+确认当前会话能使用目标工具，再让Agent检查输入。项目作用域需在每个消费项目配置，不能把安装目录误作业务目录。
+两者均须确认服务端9个工具可发现；Host是否展示Resources/Prompts需分别核对，不能从工具可用推断。
+步骤依据官方文档，未执行真实Host注册；失败时保留stderr并先运行第3节协议检查，不反复提交绘图。
+
+如需复制交付模板为待合并文件，在自己选择的配置编辑工作目录执行；已有文件时停止：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$Source = 'D:\MCP\ecommerce-image-replicator-mcp\.mcp.json.example'
+$Name = '.mcp.json'
+if (Test-Path -LiteralPath $Name) { throw '文件已存在，请备份并仅合并目标服务' }
+Copy-Item -LiteralPath $Source -Destination $Name -ErrorAction Stop
+```
+
+不要将这一通用复制命令理解为所有Host都会加载当前目录文件；按选定Host的作用域合并。
+不要求cwd，不在Host配置中传密钥，仅提供本地stdio。
 
 ## 5. 启动排障与更新
 
@@ -135,39 +223,136 @@ if ($LASTEXITCODE -ne 0) { throw '服务退出失败，检查 stderr。' }
 `--max-batch-images N --max-request-bytes B --max-output-tokens T`，N/B/T 由操作者填写正整数，
 不代表经供应商确认的上限。下载额外域名通过重复 `--download-host` 显式允许。
 
-更新前停止 MCP、记录 `git rev-parse HEAD` 并检查 `git status --porcelain`；有修改先保留。
-成员只更新到已公开且核验通过的标签，避免跟随开发分支。
+### 从 v0.1.1 升级到 v0.1.2
+
+先停止所有Host管理的本服务子进程，避免SQLite/WAL备份时仍有写入。记录旧配置，保留原
+`--max-batch-images`、`--max-request-bytes`、`--max-output-tokens`、`--download-host`，以及已用的
+`--state-dir`、`--allow-workspace-root`。本版示例省略预算，不能直接代替原有可执行配置。
+任务模式只删除 `--workspace` 与对应路径；保留原业务目录，原目录若为D:\AgentWorkspace就继续使用它。
+
+以下在普通PowerShell执行。按实际情况编辑业务目录列表；备份目录不能放进被备份目录。
+已有自定义state-dir时也加入列表。目录含junction/symlink时先停止，单独核对真实目录；不要把跳过链接的备份当成完整备份。
 
 ```powershell
 $ErrorActionPreference = 'Stop'
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
+$DataDirs = @('D:\EcommerceImageReplicator') # 改成实际原目录，可列多个
+$ExpectedCommit = '036ef5e3246ce32f23ddd8138284fc1d18f357ed'
+$ExpectedRepository = 'https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp'
+$Origin = git -C $ProjectDir remote get-url origin
+if ($LASTEXITCODE -ne 0) { throw '无法读取origin' }
+$Origin = $Origin.Trim().TrimEnd('/') -replace '\.git$', ''
+if ($Origin -notin @($ExpectedRepository, 'git@github.com:tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp')) {
+    throw 'origin与正式仓库不一致，停止核对'
+}
 $Changes = git -C $ProjectDir status --porcelain
-if ($LASTEXITCODE -ne 0 -or $Changes) { throw '工作区存在改动或检查失败，停止升级' }
+if ($LASTEXITCODE -ne 0 -or $Changes) { throw '源码有改动/未跟踪文件或状态检查失败，先保留并处理' }
 $PreviousCommit = git -C $ProjectDir rev-parse HEAD
-if ($LASTEXITCODE -ne 0) { throw '无法记录原提交' }
-Write-Host "保留原提交：$PreviousCommit"
-$ExpectedCommit = Read-Host '粘贴目标Release的SOURCE_COMMIT完整40位SHA'
-if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA无效' }
+if ($LASTEXITCODE -ne 0) { throw '无法记录旧提交' }
+
+$State = Join-Path $ProjectDir '.replicator'
+if (Test-Path -LiteralPath $State) { $DataDirs += $State }
+foreach ($Dir in $DataDirs) {
+    $RootItem = Get-Item -LiteralPath $Dir -Force -ErrorAction Stop
+    if (!$RootItem.PSIsContainer -or ($RootItem.Attributes -band [IO.FileAttributes]::ReparsePoint)) {
+        throw "不是普通目录：$Dir"
+    }
+    $Links = Get-ChildItem -LiteralPath $Dir -Recurse -Force -ErrorAction Stop |
+        Where-Object { $_.Attributes -band [IO.FileAttributes]::ReparsePoint }
+    if ($Links) { throw "目录含链接，请先核对：$Dir" }
+}
+$Backup = Join-Path 'D:\MCP-backups' ('replicator-' + (Get-Date -Format 'yyyyMMdd-HHmmss'))
+New-Item -ItemType Directory -Path $Backup -ErrorAction Stop | Out-Null
+$Sid = [Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+icacls $Backup /inheritance:r /grant:r "*${Sid}:(OI)(CI)F" '*S-1-5-18:(OI)(CI)F' '*S-1-5-32-544:(OI)(CI)F' | Out-Null
+if ($LASTEXITCODE -ne 0) { throw '备份权限设置失败' }
+$PreviousCommit | Set-Content (Join-Path $Backup 'previous-commit.txt') -Encoding utf8
+$DataDirs | Set-Content (Join-Path $Backup 'data-directories.txt') -Encoding utf8
+$EnvFile = Join-Path $ProjectDir '.env'
+$EnvHash = $null
+if (Test-Path -LiteralPath $EnvFile) {
+    $EnvHash = (Get-FileHash -LiteralPath $EnvFile).Hash
+    $EnvAcl = (Get-Acl -LiteralPath $EnvFile).Sddl
+    Copy-Item -LiteralPath $EnvFile -Destination (Join-Path $Backup '.env') -ErrorAction Stop
+    $EnvAcl | Set-Content (Join-Path $Backup 'env-acl.txt') -Encoding utf8
+}
+for ($i=0; $i -lt $DataDirs.Count; $i++) {
+    robocopy $DataDirs[$i] (Join-Path $Backup "data-$i") /E /COPY:DAT /DCOPY:DAT /XJ /R:1 /W:1 | Out-Null
+    if ($LASTEXITCODE -ge 8) { throw '数据备份失败' }
+}
+Write-Host "备份位置：$Backup；旧提交：$PreviousCommit"
+
 git -C $ProjectDir fetch origin tag v0.1.2
-if ($LASTEXITCODE -ne 0) { throw '获取目标失败' }
-$TagCommit = git -C $ProjectDir rev-parse 'v0.1.2^{commit}'
-if ($LASTEXITCODE -ne 0 -or $TagCommit -ne $ExpectedCommit) { throw '标签与发布提交不一致' }
+if ($LASTEXITCODE -ne 0) { throw '获取标签失败' }
+$Target = git -C $ProjectDir rev-parse 'v0.1.2^{commit}'
+if ($LASTEXITCODE -ne 0 -or $Target -ne $ExpectedCommit) { throw '发布提交不匹配' }
 git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.2
-if ($LASTEXITCODE -ne 0) { throw '切换失败' }
+if ($LASTEXITCODE -ne 0) { throw '切换失败，保留数据并停止' }
 uv --directory $ProjectDir sync --locked --no-dev
-if ($LASTEXITCODE -ne 0) { throw '安装失败，不启动服务' }
+if ($LASTEXITCODE -ne 0) { throw '锁定安装失败，不启动' }
+if ($EnvHash) {
+    if ((Get-FileHash -LiteralPath $EnvFile).Hash -ne $EnvHash -or (Get-Acl -LiteralPath $EnvFile).Sddl -ne $EnvAcl) {
+        throw '.env内容或ACL变化，请保留现场核对'
+    }
+}
 uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw '协议复验失败' }
+Write-Host '安装及发现检查通过；请合并Host配置并按第8节查询旧任务。'
 ```
 
-回滚同样先确认工作区干净，用记录的完整SHA执行`git switch --detach --no-overwrite-ignore`，再锁定安装和协议检查。回滚切回已记录 SHA 后重新安装；保留 `.env`、工作区和 `.replicator`，
-不 reset/clean 清空。不承诺未来数据库 schema 的降级兼容。
+备份副本使用受限备份目录权限，数据复制没有承诺克隆原ACL；原文件ACL不修改，`.env`原SDDL另存供核对。
+备份不进Git。任一步失败不执行后续步骤，不使用reset/clean、删除数据库或重建工作区代替恢复。
+若继续使用固定模式，保留旧 `--workspace` 即可；任务模式先import_run再get_run，不重新prepare旧任务。
+
+### 回滚到已发布 v0.1.1
+
+先停止MCP并保留升级后新增数据及索引。以下仅针对已核验的v0.1.1，不能用于任意历史版本：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+$ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
+$OldWorkspace = 'D:\EcommerceImageReplicator' # 实际原目录，不移动
+$Changes = git -C $ProjectDir status --porcelain
+if ($LASTEXITCODE -ne 0 -or $Changes) { throw '存在本地改动或状态检查失败，停止回滚' }
+git -C $ProjectDir fetch origin tag v0.1.1
+if ($LASTEXITCODE -ne 0) { throw '获取旧标签失败' }
+$OldCommit = git -C $ProjectDir rev-parse 'v0.1.1^{commit}'
+if ($LASTEXITCODE -ne 0 -or $OldCommit -ne 'c85f396c559411a68bdd5a2cba4bbbe858ab3245') {
+    throw '旧标签提交不匹配'
+}
+git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.1
+if ($LASTEXITCODE -ne 0) { throw '源码回滚失败' }
+uv --directory $ProjectDir sync --locked --no-dev
+if ($LASTEXITCODE -ne 0) { throw '旧版锁定安装失败' }
+uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir --workspace $OldWorkspace
+if ($LASTEXITCODE -ne 0) { throw '旧版协议检查失败' }
+```
+
+Host配置恢复 `--workspace` 和原路径，移除v0.1.1不认识的 `--state-dir`、`--allow-workspace-root`；
+预算和下载域名继续保留。调用恢复为原 `thread_id` / `parent_thread_id`，v0.1.1不识别run_id/import_run。
+不要删除v0.1.2的任务索引，后续升回可继续使用。回滚后的发现为8工具；v0.1.1的serverInfo展示0.1.0是已知历史问题。
+本次验证覆盖原有已完成/待完成任务，不代表任意未来schema、新增修订或所有业务状态都可降级。
+
+### 启动参数与保留边界
+
+| 参数 | 类型/默认值 | 作用 |
+|---|---|---|
+| --project-root | 路径，必填 | 实际安装根；固定.env位置 |
+| --workspace | 路径，可省略 | 给出时固定模式；省略时准备工具必传workspace |
+| --state-dir | 已存在绝对目录，默认安装根 | 保存.replicator/task-registry.sqlite，重启时保持一致 |
+| --allow-workspace-root | 已存在绝对目录，可重复，默认不限根 | 工具工作区须在允许根内；仍受OS权限约束 |
+| --max-batch-images | 整数，默认0 | 批次图数预算，执行前必须正数 |
+| --max-request-bytes | 整数，默认0 | 请求体字节预算，执行前必须正数 |
+| --max-output-tokens | 整数，默认0 | LLM输出预算，执行前必须正数 |
+| --download-host | 域名，可重复 | 显式增加下载主机；保留原授权列表 |
+
+预算由操作者按供应商协议及费用授权填写，不把示例数字当作供应商上限；发现检查不会验证这些预算。
 
 ## 6. 文件清单
 
 Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥模板。
 `.venv`、缓存、构建、测试报告为生成物。业务工作区 `.replicator` 保存恢复状态和中间图像，
-`artifacts` 保存最终结果。入口 `python -m image_replicator`。Release计划附源码包、wheel和摘要/来源文件，不提供额外成员ZIP安装包。源码包采用显式白名单，不包含产品图、竞品图、业务brief、任务数据库或本地证据。
+`artifacts` 保存最终结果。入口 `python -m image_replicator`。Release已提供源码包、wheel和摘要/来源文件，不提供额外成员ZIP安装包。源码包采用显式白名单，不包含产品图、竞品图、业务brief、任务数据库或本地证据。
 
 ## 7. 资源清单
 
@@ -188,9 +373,78 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 | Tool `import_run` | workspace、thread_id | 绑定原工作区已有任务，返回 run_id；无 API 调用 |
 
 工具名称如表，Host 对模型暴露的前缀由 Host 决定。工具失败使用 isError；后台失败为
-run.status=blocked。scheduled 只表示已安排执行，不代表生成成功，使用 get_run 查询。
+status=blocked。scheduled 只表示已安排执行，不代表生成成功，使用 get_run 查询。
+
+### 参数、返回与调用约定
+
+工具均返回结构化对象；精确类型、必填项、嵌套字段和枚举见从实际SDK发现导出的
+[MCP契约快照](docs/MCP-CONTRACT-v0.1.2.json)。prepare_inputs是无参数Prompt；input-contract是JSON Resource；
+资源模板无。Tool结果的业务字段并非全部由outputSchema严格枚举，以下说明实际返回，不能把任意dict当业务成功。
+
+| 参数/结果 | 规则 |
+|---|---|
+| workspace | string；inspect_inputs/prepare_run在任务模式必填，固定模式可省略；import_run始终必填 |
+| run_id / thread_id | string或省略；后续工具必须二选一；thread_id仅固定模式；run_id绑定后不能改目录 |
+| parent_run_id / parent_thread_id | prepare_revision父标识，二选一，同上 |
+| options | 可省略/null，使用下表默认值 |
+| image_id | get_design必填string；取inspect_inputs返回值，不猜图片序号 |
+| index / task_id | reconcile_submission必填；index为从0开始的整数且在任务范围内，task_id为核实过的供应商编号 |
+| report | record_review必填对象；使用契约review_schema，包含图片/参考/成图/设计哈希及完整检查项，不能用空报告验收 |
+| updates | prepare_revision必填非空数组；每项image_id与完整替换delta；不得重复图片ID |
+| product_context / legacy_revision_budget | 修订可选对象/null；旧v1预算默认0，整数0..5；v2沿用原谱系预算 |
+| inspect_inputs结果 | workspace、groups、images（稳定image_id及权威排序） |
+| prepare/import/get/execute/review结果 | thread_id、run_id、workspace、status、jobs；已完成时包含artifacts等状态字段 |
+| prepare_revision结果 | 新run_id/thread_id、parent_run_id及子任务状态；不提交绘图 |
+| get_design结果 | plan/design_sha256，或analysis_required与missing字段；不是成图 |
+
+| RunOptions字段 | 类型、默认值与约束 |
+|---|---|
+| image_model | string；默认gpt-image-2.5-flare，或gpt-image-2.5-sunburst |
+| concurrency | integer；默认2，范围1..8；不同工作区各自使用该并发，不是实例总额度 |
+| selected_image_ids | string数组或null；默认null选全部；提供时至少1项，须来自输入列表 |
+| review_mode | string；manual（默认）或vision；后者可能产生额外LLM费用 |
+| max_visual_revisions | integer；默认0，范围0..5 |
+
+调用示例采用“字段引用”表示从上一步取真实值，不是可以直接粘贴进Shell的命令：
+
+| 调用 | 参数示例/取值 |
+|---|---|
+| inspect_inputs | workspace = 当前项目绝对目录 |
+| prepare_run | workspace同上，options = 第8节JSON示例 |
+| get_run | run_id = prepare_run返回的run_id |
+| execute_run | run_id同上；须先确认收费授权及预算 |
+| get_design | run_id同上，image_id = inspect_inputs返回的目标image_id |
+| record_review | run_id同上，report = 对原图/成图/产品实查后的完整review_schema对象 |
+| prepare_revision | parent_run_id = 原run_id；updates = [{image_id:目标ID, delta:完整修订增量}] |
+| reconcile_submission | run_id同上，index = 对应jobs中的index，task_id = 人工核实供应商原编号 |
+| import_run | 第8节旧任务示例；返回run_id后再查询 |
+
+所有哈希和供应商编号必须来自真实任务，不以示例值伪造。复杂delta/review/product_context字段由Resource与契约快照提供，
+具体产品事实及验收边界见[设计契约](docs/DESIGN-V2.md)。错误使用isError；get_run的status和jobs决定任务是否成功。
 
 ## 8. 功能说明
+
+### 准备新任务
+
+工作区目录必须已存在，可由Agent在获授权的项目目录内准备 references/<group>、products、brief 和可选prompts。
+产品事实写brief/design.json；prompts/<group>.json是按自然顺序的一图一项增量数组；路径/样例见工作流契约。
+先读取replicator://input-contract和prepare_inputs，再调用inspect_inputs确认图片ID。
+下面是prepare_run的完整参数示例，路径换成实际项目；不提供selected_image_ids时选择全部，试样时务必传目标ID数组：
+
+```json
+{
+  "workspace": "D:\\EcommerceImageReplicator",
+  "options": {
+    "image_model": "gpt-image-2.5-flare",
+    "concurrency": 2,
+    "review_mode": "manual",
+    "max_visual_revisions": 0
+  }
+}
+```
+
+保存返回的run_id。先get_run确认jobs与目录，再经授权execute_run，轮询get_run；scheduled不代表生成成功。
+使用返回workspace拼接artifacts的相对路径；不要拼接Agent当前目录。输入修改后重新prepare，新任务与旧任务分开。
 
 Agent 根据 brief/产品图/竞品图，按 inspect_inputs 顺序写 prompts 数组，调用 prepare_run，
 检查 jobs 后调用 execute_run，再轮询 get_run。options.image_model 选择 flare 或 sunburst 系列；
@@ -222,6 +476,32 @@ partial 会返回已完成图片，needs_revision 可用 prepare_revision 只修
 使用 selected_image_ids 选择小样本，不必另建参考目录。完整字段、预算、状态和 v1 迁移见
 [v2 设计与修订](docs/DESIGN-V2.md)。已有 v1 thread 按原流程恢复，不自动重绘或升级验收状态。
 
+### 任务级工作区与旧任务导入
+
+v0.1.2 提供9个工具，第7节工具表按新契约更新。已发布 v0.1.1 为8个工具，无 import_run，仍需固定工作区。
+省略启动 --workspace 后，Agent 必须在 inspect_inputs / prepare_run 传已有项目绝对目录，保存返回 run_id；
+后续用 run_id 查询、生成、验收与恢复，prepare_revision 用 parent_run_id。旧固定模式继续兼容 thread_id。
+详细调用示例、可选目录限制、索引备份和旧任务导入见[任务级工作区说明](docs/TASK-WORKSPACES.md)。
+无需强制安装配套 Skill 或填写 AGENTS.md / CLAUDE.md；Agent 应先读 MCP 自带资源和提示。
+
+旧任务恢复不调用prepare_run。把原目录及原thread_id交给import_run；以下thread_id是明确待替换的任务值，
+须从原对话或任务记录取完整64位ID，不能用供应商task_id代替：
+
+```json
+{
+  "workspace": "D:\\EcommerceImageReplicator",
+  "thread_id": "从原任务记录取得的完整thread_id"
+}
+```
+
+保存返回run_id，用get_run查询；只有用户要求继续且预算/凭据已配置时才execute_run。
+import_run无供应商调用，不复制文件、不重绘。已完成任务返回原产物；已提交任务沿原task_id查询；未知结果不自动重提。
+缺少thread_id时先找原任务记录，不创建新任务冒充恢复。新模式不扫描磁盘，也不自动识别Host当前项目。
+
+必须同时保留安装根（或自定义state-dir）的.replicator任务索引、原工作区完整.replicator日志/checkpoint、
+artifacts和输入文件。备份前停止服务并包含SQLite WAL文件。索引丢失可用原目录与thread_id重新import_run；
+原工作区丢失则不能只凭索引恢复。目录移动不在本版支持范围。
+
 ## 9. 注意事项
 
 详见 [工作流契约](docs/WORKFLOW.md)。绘图最多三次尝试，明确失败后的新提交可能再次收费；
@@ -230,6 +510,11 @@ partial 会返回已完成图片，needs_revision 可用 prepare_revision 只修
 `.replicator` 包含业务信息和原始响应，需本机权限保护并按业务留存要求管理。
 默认下载允许 ai.t8star.org、files.closeai.fans，不跟随重定向；结合部署出口限制使用。
 原尺寸恢复涉及缩放，不保证像素无损；文案位置和生成质量仍需视觉验收。
+
+预算、凭据与任务选择属于执行前提；任务模式不限根时仍只能访问运行账号有权限的目录，不是多租户沙箱。
+路径拒绝相对路径、父级跳转、符号链接/junction；缩小允许根后，原任务也会重新校验并可能拒绝恢复。
+默认轮询间隔5秒、单次轮询窗口300秒、下载上限50MiB（代码设置，非CLI参数）；超时按任务状态恢复，不自动重提未知提交。
+停止进程只中断本地等待，不撤销供应商绘图；保留状态并查询原任务。不要重复点击执行来绕过预算或权限错误。
 
 ## 10. 常见问题
 
@@ -246,7 +531,18 @@ partial 会返回已完成图片，needs_revision 可用 prepare_revision 只修
 - 安装失败：核对锁、uv/Python 与 TLS/包源，不删锁或关闭校验。
 - GitHub标签或权限错误：确认Release已公开、账号有仓库权限，并核对SOURCE_COMMIT；不可改装未核验开发HEAD。
 - Host无法发现：先执行smoke.py；模板只验证语法，Host产品、旧协议或CLI注册组合未联调。
-- 本地126项测试及12张真实复刻验收通过，不等于GitHub目标提交、Windows CI或发布安装已验收。
+- 历史12张真实图像验收属于旧业务阶段；当前版本的本地、CI、安装及升级保留证据见第3节，不据此宣称本版本真实API或Host联调通过。
+
+- git/uv命令不可用：确认安装及PATH，重新打开普通PowerShell；不要改为全局pip安装。
+- `.env`空字段遮蔽用户级密钥：填入实际值，或移除需回退的字段；不能以留空表示回退。
+- smoke通过但执行失败：发现不验证密钥、预算、业务目录或后端认证；按失败阶段检查，日志不贴真实密钥。
+- 升级有本地修改/未跟踪文件：先备份和手工处理，不强制覆盖；重装仅重新执行锁定安装，不删除.env或任务数据。
+- 旧版启动提示缺workspace：回滚需恢复--workspace；旧版无法使用run_id/import_run。
+- 找不到run_id：确认state-dir未变、允许根覆盖原目录；只有索引丢失时按原thread_id导入。
+- 更新配置后仍旧行为：停止并重启Host管理的实际MCP子进程；检查是否存在同名旧实例。
+- stdout出现普通日志或连接关闭：stdio stdout只允许协议；检查stderr、启动命令和重复实例，不能关闭校验硬连。
+- 超时/401/403：区分供应商认证与下载授权，核对运行账号及凭据来源；未知提交保持原任务身份。
+- 模块或scripts/smoke.py缺失：检查checkout完整SHA和锁定安装；源码clone应包含入口，无独立Node构建步骤。
 
 ### Windows运行目录拒绝访问
 
@@ -257,12 +553,3 @@ v0.1.0在管理员环境首次启动时可能创建仅SYSTEM、Administrators及
 `Cannot initialize workspace journal`也可能是磁盘空间或数据库锁问题，不应一律当作权限错误。保留原文件并检查相应条件。`Workspace directory not found`表示需要先创建业务工作区。
 
 已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。v0.1.2 已修复版本展示并验证与发行元数据一致；不覆盖v0.1.1附件。
-
-
-## 任务级工作区使用（v0.1.2）
-
-v0.1.2 提供9个工具，第7节工具表按新契约更新。已发布 v0.1.1 为8个工具，无 import_run，仍需固定工作区。
-省略启动 --workspace 后，Agent 必须在 inspect_inputs / prepare_run 传已有项目绝对目录，保存返回 run_id；
-后续用 run_id 查询、生成、验收与恢复，prepare_revision 用 parent_run_id。旧固定模式继续兼容 thread_id。
-详细调用示例、可选目录限制、索引备份和旧任务导入见[任务级工作区说明](docs/TASK-WORKSPACES.md)。
-无需强制安装配套 Skill 或填写 AGENTS.md / CLAUDE.md；Agent 应先读 MCP 自带资源和提示。
