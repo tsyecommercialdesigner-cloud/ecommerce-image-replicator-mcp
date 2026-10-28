@@ -39,6 +39,7 @@ def setup_v2(workspace, monkeypatch):
 
 def make_report(service, manifest, index=0, verdict="pass"):
     job = service.status(manifest["thread_id"])["jobs"][index]
+    assert "artifact_sha256" in job, job
     plan = service.design(manifest["thread_id"], job["image_id"])["plan"]
     return ReviewReport.model_validate(
         {

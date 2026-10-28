@@ -2,6 +2,8 @@
 
 import asyncio
 import hashlib
+import logging
+import traceback
 from pathlib import Path
 
 import portalocker
@@ -300,6 +302,15 @@ class ImageWorkflow(Workflow):
                         except asyncio.CancelledError:
                             raise
                         except Exception as exc:
+                            if not isinstance(exc, (ProviderFailure, SubmissionUnknown)):
+                                logging.getLogger(__name__).error(
+                                    "Local workflow error %s; frames=%s",
+                                    type(exc).__name__,
+                                    [
+                                        (Path(frame.filename).name, frame.name, frame.lineno)
+                                        for frame in traceback.extract_tb(exc.__traceback__)
+                                    ],
+                                )
                             result = {
                                 **(self.journal.get("job_result", key) or {}),
                                 "generation_status": "blocked",
