@@ -1,5 +1,12 @@
 # 升级与回滚保留验证
 
+## v0.1.5 → v0.1.6 → v0.1.5
+
+Windows本地候选及PR/合入/标签CI通过。基线 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`，发布目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。
+升级前旧任务的.env字节/ACL、工作区、索引和成功产物保留，pending receipt恢复不重复提交；三阶段假供应商提交总数保持2，真实请求0。临时环境已清理。
+运行 `uv run --no-sync python scripts/verify_upgrade.py --candidate v0.1.6 --baseline v0.1.5` 可复现，先获取v0.1.1至v0.1.6标签。
+此回滚不覆盖新增恢复记录的旧版执行；新指向/retry scope旧版不识别，禁止混用新旧服务执行同一工作区。两种发布包安装后另验证关联恢复准备、幂等/重启绑定和7图保留，见[实际发布记录](releases/v0.1.6.md)。
+
 ## v0.1.4 → v0.1.5 → v0.1.4
 
 2026-10-28，Windows本地候选及PR、合入、标签CI通过。基线 `a77ed089de3031cbefdbd235608b6631a95d3e40`，发布目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。
