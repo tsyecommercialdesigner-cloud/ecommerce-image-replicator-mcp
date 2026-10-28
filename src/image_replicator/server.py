@@ -21,17 +21,23 @@ from .inputs import discover, freeze, inspect_images, safe_path
 from .models import REFERENCE_POLICY, Delta, ProductContext, RevisionUpdate, RunOptions
 from .models import ReferenceReviewReport as ReviewReport
 from .provider import Provider, ProviderFailure, SubmissionUnknown
+from .routing import WorkspaceRouter
 from .runtime import StartupError, open_journal
 from .storage import canonical, digest
 from .workflow import Workflow, validate_task_id
 from .workflow_v2 import ImageWorkflow, aggregate, result_key
 
-INSTRUCTIONS = """Use input_contract and prepare_inputs before executing. Workspace is fixed by
-the server operator. References are references/<group>/*.jpg or *.png; products/ contains user
+INSTRUCTIONS = """Read replicator://input-contract and prepare_inputs before executing.
+In task mode pass
+an absolute workspace to inspect_inputs/prepare_run. Use returned run_id for every subsequent
+call; the workspace binding cannot change. In fixed mode the configured workspace is the default
+and legacy thread_id remains usable. import_run binds an existing local thread without API calls.
+References are references/<group>/*.jpg or *.png; products/ contains user
 product photos; brief/*.md contains product facts. Write prompts/<group>.json as a naturally
 ordered array, one item per reference; {} retains the base prompt. Inspect inputs before calling
 prepare_run. execute_run authorizes paid LLM and image requests for the frozen manifest, then
-returns immediately; poll get_run. resume uses the same thread_id and retained provider task_ids.
+returns immediately; poll get_run. Resume uses the same run_id (legacy fixed mode: thread_id)
+and retained provider task_ids. prepare_revision uses parent_run_id in task mode.
 Never resubmit unknown image outcomes; reconcile with a known supplier task_id first.
 New runs preserve reference composition, object inventory and relationships, including props,
 stains, water, hands, actions, counts and control subjects. Deltas may adapt product copy,
@@ -363,15 +369,23 @@ class Service:
         await asyncio.gather(*running, return_exceptions=True)
 
 
-def create_server(settings: Settings) -> MCPServer:
-    service = Service(settings)
+def create_server(
+    settings: Settings,
+    *,
+    task_workspaces: bool = False,
+    allowed_roots: tuple[Path, ...] = (),
+    state_dir: Path | None = None,
+) -> MCPServer:
+    router = WorkspaceRouter(
+        settings, task_workspaces=task_workspaces, allowed_roots=allowed_roots, state_dir=state_dir
+    )
 
     @asynccontextmanager
     async def lifespan(server):
         try:
-            yield service
+            yield router
         finally:
-            await service.close()
+            await router.close()
 
     server = MCPServer(
         "ecommerce-image-replicator",
@@ -385,6 +399,11 @@ def create_server(settings: Settings) -> MCPServer:
         return canonical(
             {
                 "instructions": INSTRUCTIONS,
+                "workspace_mode": "task" if task_workspaces else "fixed",
+                "default_workspace": None if task_workspaces else str(settings.workspace),
+                "allowed_roots": [str(p) for p in router.allowed],
+                "state_directory": str(router.state_dir),
+                "task_identity": "run_id routes to immutable workspace/thread_id binding",
                 "delta_item_schema": Delta.model_json_schema(),
                 "product_context_schema": ProductContext.model_json_schema(),
                 "review_schema": ReviewReport.model_json_schema(),
@@ -417,111 +436,159 @@ def create_server(settings: Settings) -> MCPServer:
         )
 
     @server.tool(structured_output=True)
-    def inspect_inputs() -> dict[str, Any]:
-        """Read reference folder/image order; no API calls or paid work."""
+    def inspect_inputs(workspace: str | None = None) -> dict[str, Any]:
+        """Read input order in an explicit workspace (or fixed default); no API calls."""
         try:
+            service = router.for_workspace(workspace)
+            root = service.settings.workspace
             return {
-                "groups": discover(settings.workspace.resolve()),
-                "images": inspect_images(settings.workspace.resolve()),
+                "workspace": str(root),
+                "groups": discover(root),
+                "images": inspect_images(root),
             }
         except Exception as exc:
-            raise ToolError(f"Input inspection failed ({type(exc).__name__})") from None
-
-    @server.tool(structured_output=True)
-    def prepare_run(options: RunOptions | None = None) -> dict[str, Any]:
-        """Validate and snapshot all input files; return stable thread_id without API calls."""
-        try:
-            manifest = freeze(settings.workspace, options or RunOptions())
-            thread_id = manifest["thread_id"]
-            service.journal.put("manifest", thread_id, manifest)
-            return service.status(thread_id)
-        except Exception as exc:
             raise ToolError(
-                f"Preparation failed ({type(exc).__name__}); check input contract"
+                f"Input inspection failed ({type(exc).__name__}); check workspace"
             ) from None
 
     @server.tool(structured_output=True)
-    async def execute_run(thread_id: str) -> dict[str, Any]:
-        """Start/resume the frozen run. This authorizes paid LLM and image API calls."""
+    def prepare_run(
+        options: RunOptions | None = None, workspace: str | None = None
+    ) -> dict[str, Any]:
+        """Freeze inputs and return a workspace-bound run_id; no API calls."""
         try:
-            return await service.execute(thread_id)
-        except ValueError as exc:
-            # Configuration errors contain names only, never credential values.
-            raise ToolError(str(exc)) from None
+            service = router.for_workspace(workspace)
+            manifest = freeze(service.settings.workspace, options or RunOptions())
+            thread_id = manifest["thread_id"]
+            service.journal.put("manifest", thread_id, manifest)
+            return router.expose(service, service.status(thread_id))
+        except Exception as exc:
+            raise ToolError(
+                f"Preparation failed ({type(exc).__name__}); check workspace and input contract"
+            ) from None
 
     @server.tool(structured_output=True)
-    def get_run(thread_id: str) -> dict[str, Any]:
-        """Read durable progress, task IDs and artifact paths; no supplier calls."""
+    def import_run(workspace: str, thread_id: str) -> dict[str, Any]:
+        """Bind an existing task without generating; use when resuming legacy tasks in task mode."""
         try:
-            return service.status(thread_id)
-        except ValueError as exc:
-            raise ToolError(str(exc)) from None
+            root = router.checked_root(Path(workspace))
+            safe_path(root, ".replicator/journal.sqlite")
+            service = router.for_workspace(str(root))
+            return router.expose(service, service.status(thread_id))
+        except Exception as exc:
+            raise ToolError(
+                f"Task import failed ({type(exc).__name__}); preserve original workspace"
+            ) from None
 
     @server.tool(structured_output=True)
-    def get_design(thread_id: str, image_id: str) -> dict[str, Any]:
-        """Read the resolved target/checks or missing analysis fields; no API calls."""
+    async def execute_run(
+        thread_id: str | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Start/resume the bound run. This authorizes paid LLM and image API calls."""
         try:
-            return service.design(thread_id, image_id)
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            # Persist identity before crossing the paid boundary, even for legacy callers.
+            router.bind(service, local_id)
+            return router.expose(service, await service.execute(local_id))
+        except Exception as exc:
+            raise ToolError(
+                f"Execution rejected ({type(exc).__name__}); check task binding and budgets"
+            ) from None
+
+    @server.tool(structured_output=True)
+    def get_run(thread_id: str | None = None, run_id: str | None = None) -> dict[str, Any]:
+        """Read bound task progress and workspace-relative artifacts; no supplier calls."""
+        try:
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            return router.expose(service, service.status(local_id))
+        except Exception as exc:
+            raise ToolError(
+                f"Task lookup failed ({type(exc).__name__}); check task binding"
+            ) from None
+
+    @server.tool(structured_output=True)
+    def get_design(
+        image_id: str, thread_id: str | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Read design inside the bound task; no API calls."""
+        try:
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            return service.design(local_id, image_id)
         except Exception as exc:
             raise ToolError(f"Design inspection failed ({type(exc).__name__})") from None
 
     @server.tool(structured_output=True)
-    def record_review(thread_id: str, report: ReviewReport) -> dict[str, Any]:
-        """Record every visual check against an exact image/artifact hash; no API calls."""
+    def record_review(
+        report: ReviewReport, thread_id: str | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Record artifact-bound checks in the task's original workspace; no API calls."""
         try:
-            return service.record_review(thread_id, report)
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            return router.expose(service, service.record_review(local_id, report))
         except Exception as exc:
             raise ToolError(f"Review rejected ({type(exc).__name__})") from None
 
     @server.tool(structured_output=True)
     def prepare_revision(
-        parent_thread_id: str,
         updates: list[RevisionUpdate],
+        parent_thread_id: str | None = None,
         legacy_revision_budget: int = 0,
         product_context: ProductContext | None = None,
+        parent_run_id: str | None = None,
     ) -> dict[str, Any]:
-        """Freeze selected replacements and reserve lineage budget; no API calls.
+        """Freeze a revision in the parent's workspace; return a new run_id, no API calls.
 
-        Deltas replace the parent's delta completely. v2 uses its original max_visual_revisions;
-        legacy runs require an explicit legacy_revision_budget (0..5) on first revision.
+        Deltas replace the parent's delta completely. v2 keeps its original revision budget.
         """
         try:
-            return service.revision(
-                parent_thread_id, updates, legacy_revision_budget, product_context
-            )
+            service, local_id = router.resolve(run_id=parent_run_id, thread_id=parent_thread_id)
+            result = service.revision(local_id, updates, legacy_revision_budget, product_context)
+            return {
+                **router.expose(service, result),
+                "parent_run_id": router.bind(service, local_id),
+            }
         except Exception as exc:
             raise ToolError(
-                f"Revision preparation failed ({type(exc).__name__}); "
-                "check parent state, IDs and budget"
+                f"Revision preparation failed ({type(exc).__name__}); check parent, IDs and budget"
             ) from None
 
     @server.tool(structured_output=True)
-    async def reconcile_submission(thread_id: str, index: int, task_id: str) -> dict[str, Any]:
-        """Bind an operator-verified supplier task_id to an unknown submission; never resubmit."""
+    async def reconcile_submission(
+        index: int,
+        task_id: str,
+        thread_id: str | None = None,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Bind a verified supplier task_id to the bound unknown submission; never resubmit."""
         try:
-            manifest = service.manifest(thread_id)
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            manifest = service.manifest(local_id)
             if index < 0 or index >= len(manifest["jobs"]):
                 raise ValueError("Invalid job index")
             validate_task_id(task_id)
-            link = service.journal.get("run_job", f"{thread_id}:{index}")
+            link = service.journal.get("run_job", f"{local_id}:{index}")
             if not link:
                 raise ValueError("No submission to reconcile")
             lock = portalocker.Lock(
-                str(safe_path(settings.workspace, ".replicator/execution.lock", exists=False)),
+                str(
+                    safe_path(
+                        service.settings.workspace, ".replicator/execution.lock", exists=False
+                    )
+                ),
                 timeout=0,
             )
             with lock:
                 record = service.journal.get("image", link["key"])
                 if record["status"] not in {"unknown", "submitting"}:
                     raise ValueError("Only unknown submissions may be reconciled")
-                provider = Provider(settings, read_keys(settings.project_root))
+                provider = Provider(service.settings, read_keys(settings.project_root))
                 try:
                     await provider.query(task_id)
                 finally:
                     await provider.close()
                 record.update(status="pending", task_id=task_id)
                 service.journal.put("image", link["key"], record)
-            return service.status(thread_id)
+            return router.expose(service, service.status(local_id))
         except Exception as exc:
             raise ToolError(f"Reconciliation failed ({type(exc).__name__})") from None
 
@@ -537,7 +604,11 @@ def main():
         help="Installation root containing the private .env",
     )
     parser.add_argument(
-        "--workspace", required=True, type=Path, help="Authorized Agent business workspace"
+        "--workspace", type=Path, help="Optional fixed business workspace (legacy mode)"
+    )
+    parser.add_argument("--allow-workspace-root", type=Path, action="append", default=[])
+    parser.add_argument(
+        "--state-dir", type=Path, help="Persistent task index directory; defaults to project root"
     )
     parser.add_argument("--max-batch-images", type=int, default=0)
     parser.add_argument("--max-request-bytes", type=int, default=0)
@@ -548,14 +619,19 @@ def main():
     args = parser.parse_args()
     settings = Settings(
         args.project_root.resolve(strict=True),
-        args.workspace.absolute(),
+        args.workspace.absolute() if args.workspace else args.project_root.resolve(strict=True),
         args.max_batch_images,
         args.max_request_bytes,
         args.max_output_tokens,
         tuple(args.download_host),
     )
     try:
-        server = create_server(settings)
+        server = create_server(
+            settings,
+            task_workspaces=args.workspace is None,
+            allowed_roots=tuple(args.allow_workspace_root),
+            state_dir=args.state_dir,
+        )
     except StartupError as exc:
         print(f"Startup error: {exc}", file=sys.stderr)
         raise SystemExit(2) from None

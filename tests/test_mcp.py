@@ -1,4 +1,5 @@
 import json
+import shutil
 import sys
 from importlib.metadata import version
 from pathlib import Path
@@ -7,6 +8,61 @@ from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
 PROJECT = Path(__file__).resolve().parents[1]
+
+
+async def test_task_workspaces_stdio_restart_and_legacy_import(workspace):
+    roots = [workspace / name for name in ("a", "b")]
+    for root in roots:
+        root.mkdir()
+        for name in ("references", "products", "brief", "prompts"):
+            shutil.copytree(workspace / name, root / name)
+    params = StdioServerParameters(
+        command=sys.executable,
+        args=[
+            "-m",
+            "image_replicator",
+            "--project-root",
+            str(PROJECT),
+            "--state-dir",
+            str(workspace),
+            "--allow-workspace-root",
+            str(workspace),
+        ],
+        cwd=str(PROJECT),
+    )
+    runs = []
+    for restart in (False, True):
+        async with stdio_client(params) as (read, write):
+            async with ClientSession(read, write) as client:
+                await client.discover()
+                resource = await client.read_resource("replicator://input-contract")
+                assert json.loads(resource.contents[0].text)["workspace_mode"] == "task"
+                assert (await client.call_tool("prepare_run", {})).is_error
+                assert (
+                    await client.call_tool("inspect_inputs", {"workspace": str(PROJECT)})
+                ).is_error
+                if not restart:
+                    for root in roots:
+                        prepared = await client.call_tool("prepare_run", {"workspace": str(root)})
+                        assert not prepared.is_error
+                        runs.append(prepared.structured_content)
+                    assert runs[0]["run_id"] != runs[1]["run_id"]
+                for root, run in zip(roots, runs, strict=True):
+                    result = await client.call_tool("get_run", {"run_id": run["run_id"]})
+                    assert not result.is_error
+                    assert result.structured_content["workspace"].lower() == str(root).lower()
+                    assert (
+                        await client.call_tool("get_run", {"thread_id": run["thread_id"]})
+                    ).is_error
+                    imported = await client.call_tool(
+                        "import_run", {"workspace": str(root), "thread_id": run["thread_id"]}
+                    )
+                    assert not imported.is_error
+                    assert imported.structured_content["run_id"] == run["run_id"]
+                    assert (
+                        await client.call_tool("execute_run", {"run_id": run["run_id"]})
+                    ).is_error
+                    # Zero budgets: no provider requests during protocol validation.
 
 
 async def test_official_mcp_client_stdio_contracts(workspace):
@@ -18,6 +74,8 @@ async def test_official_mcp_client_stdio_contracts(workspace):
             "--project-root",
             str(PROJECT),
             "--workspace",
+            str(workspace),
+            "--state-dir",
             str(workspace),
         ],
         cwd=str(workspace),
@@ -31,6 +89,7 @@ async def test_official_mcp_client_stdio_contracts(workspace):
             listed = await client.list_tools()
             assert {tool.name for tool in listed.tools} == {
                 "inspect_inputs",
+                "import_run",
                 "prepare_run",
                 "execute_run",
                 "get_run",

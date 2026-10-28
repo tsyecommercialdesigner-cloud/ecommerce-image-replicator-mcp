@@ -11,7 +11,7 @@ from mcp.client.session import ClientSession
 from mcp.client.stdio import StdioServerParameters, stdio_client
 
 
-async def check(project: Path, workspace: Path):
+async def check(project: Path, workspace: Path | None):
     params = StdioServerParameters(
         command=sys.executable,
         args=[
@@ -19,10 +19,9 @@ async def check(project: Path, workspace: Path):
             "image_replicator",
             "--project-root",
             str(project),
-            "--workspace",
-            str(workspace),
-        ],
-        cwd=str(workspace),
+        ]
+        + (["--workspace", str(workspace)] if workspace else []),
+        cwd=str(project),
     )
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as client:
@@ -34,6 +33,7 @@ async def check(project: Path, workspace: Path):
             tools = await client.list_tools()
             expected = {
                 "inspect_inputs",
+                "import_run",
                 "prepare_run",
                 "execute_run",
                 "get_run",
@@ -52,9 +52,11 @@ async def check(project: Path, workspace: Path):
             data = json.loads(contract.contents[0].text)
             if data["alignment_policy"] != "reference-creative-v1":
                 raise RuntimeError("Installed reference policy mismatch")
+            if data["workspace_mode"] != ("fixed" if workspace else "task"):
+                raise RuntimeError("Installed workspace mode mismatch")
     print(
         json.dumps(
-            {"status": "passed", "tools": 8, "resources": 1, "prompts": 1, "provider_requests": 0}
+            {"status": "passed", "tools": 9, "resources": 1, "prompts": 1, "provider_requests": 0}
         )
     )
 
@@ -62,11 +64,14 @@ async def check(project: Path, workspace: Path):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--project-root", type=Path, required=True)
-    parser.add_argument("--workspace", type=Path, required=True)
+    parser.add_argument("--workspace", type=Path)
     args = parser.parse_args()
     asyncio.run(
         asyncio.wait_for(
-            check(args.project_root.resolve(strict=True), args.workspace.resolve(strict=True)),
+            check(
+                args.project_root.resolve(strict=True),
+                args.workspace.resolve(strict=True) if args.workspace else None,
+            ),
             timeout=45,
         )
     )

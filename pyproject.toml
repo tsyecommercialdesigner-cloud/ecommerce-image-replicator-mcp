@@ -1,6 +1,6 @@
 [project]
 name = "ecommerce-image-replicator-mcp"
-version = "0.1.1"
+version = "0.1.2"
 description = "Durable LangGraph image replication workflow exposed over MCP stdio"
 requires-python = ">=3.12"
 dependencies = [

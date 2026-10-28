@@ -149,3 +149,10 @@ Agent指定`design.brand_style.text_color`（六位HEX）时，构造阶段覆�
 通过新修订任务生成并重新验收，不能直接把旧needs_revision结果改成accepted，也不以此触发无限自动重绘。
 现有text_replacements、texts、brand_style与prepare_revision能力即可表达该分支；询问和用户选择由Agent负责，
 服务端继续执行结构、文案和文字主题校验。当前05修订信息已明确，不需要启用未确定文案的回退。
+
+
+## 多项目任务路由（v0.1.2 候选，待发布核验）
+
+设计与供应商操作内部继续使用原 thread_id；公开调用新增持久绑定的 run_id。
+每个工作区独立日志、checkpoint、产物与执行锁；修订沿用父任务工作区。
+输入准备显式选目录，后续调用不允许重定向。恢复与兼容契约见 [TASK-WORKSPACES.md](TASK-WORKSPACES.md)。

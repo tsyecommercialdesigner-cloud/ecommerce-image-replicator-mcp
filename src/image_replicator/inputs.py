@@ -18,7 +18,7 @@ def safe_path(root: Path, relative: str, *, exists: bool = True) -> Path:
     cursor = root
     for part in Path(relative).parts:
         cursor = cursor / part
-        if cursor.is_symlink():
+        if cursor.is_symlink() or cursor.is_junction():
             raise ValueError("Symlink paths are not allowed")
     resolved = candidate.resolve(strict=exists)
     if not resolved.is_relative_to(root):

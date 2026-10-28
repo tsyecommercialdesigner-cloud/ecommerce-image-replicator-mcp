@@ -37,7 +37,10 @@ flowchart LR
 ## 工作区与顺序
 
 MCP 安装根（读取 `.env`）和 Agent 业务工作区（读取图片、写出产物）是独立路径。
-启动时显式给出 `--project-root` 与 `--workspace`，不依赖 Host 的 cwd。
+启动时显式给出 `--project-root`，安装根凭据不随业务目录变化。当前源码默认任务级工作区：
+`inspect_inputs` / `prepare_run` 传绝对 `workspace`，后续用返回的 `run_id`。
+传 `--workspace` 保留旧固定模式和 `thread_id` 恢复；迁移及隔离边界见 [TASK-WORKSPACES.md](TASK-WORKSPACES.md)。
+不依赖 Host cwd，也不自动猜测 Agent 当前项目。
 每个工作区只允许一个活动图执行者（跨进程文件锁）；单图中的生成任务按并发预算运行。
 这是单机 SQLite 方案，不支持多机共享网络文件系统上的并发写入。
 
@@ -144,7 +147,7 @@ HTTP 错误、写入或读取超时、成功响应缺 task_id，或进程在“�
 若无法找回 task_id，保持阻塞，不宣称框架能在没有供应商幂等键的情况下保证恰好执行一次。
 
 `execute_run` 是明确的收费执行入口；取消 Host 请求或终止 MCP 不撤销已发生的上游任务。
-下次启动后再次 execute 相同 thread_id 恢复。提交间隙用 durable 意图记录保护，
+下次启动后再次 execute 相同 run_id 恢复（固定模式兼容 thread_id）。提交间隙用 durable 意图记录保护，
 成功输出下载完成后使用原子写入落盘。最终产物已存在且内容不同时拒绝覆盖。
 
 ## 当前验证边界

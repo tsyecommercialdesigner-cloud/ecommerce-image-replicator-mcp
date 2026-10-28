@@ -14,6 +14,14 @@ SQLite 保存任务与供应商凭据，未知提交不重复绘图。
 本地131项通过、1项POSIX测试跳过；正式附件独立安装/stdio检查通过。维护代理审查，无独立人员审批；实际Host跨提升权限切换未实机联调。旧ACL不会自动修复。
 附件摘要和安装证据见[发布记录](docs/releases/v0.1.1.md)及[使用手册](MANUAL.md)。
 
+## v0.1.2 候选能力（待发布核验）
+
+启动可省略 `--workspace`，Agent 在 `inspect_inputs` / `prepare_run` 中传入当前项目绝对目录。
+返回的 `run_id` 持久绑定工作区，后续生成、查询、验收和修订使用该标识；重启后仍定位原目录。
+旧 `--workspace` 配置与 `thread_id` 继续兼容；任务模式通过 `import_run` 导入旧记录。
+新配置见 [.mcp.json.example](.mcp.json.example)，使用与恢复规则见[任务级工作区](docs/TASK-WORKSPACES.md)。
+该能力未包含在 v0.1.1 发布包中；下方固定标签安装仍使用旧模式。
+
 ## 安装与使用
 
 Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，默认安装到`D:\MCP\ecommerce-image-replicator-mcp`。
