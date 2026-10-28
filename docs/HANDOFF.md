@@ -1,5 +1,12 @@
 # 本地开发交接文档
 
+2026-10-28 当前源码已改为任务级工作区（尚未提交/发布）：CLI 可省略 --workspace，
+准备时显式选目录，后续按持久 run_id 路由；旧固定配置与 thread_id 恢复保留，新增 import_run。
+契约见 [TASK-WORKSPACES.md](TASK-WORKSPACES.md)。本地质量门禁145通过、1项POSIX跳过，
+默认模式stdio发现9工具/1资源/1提示；使用假供应商验证隔离、并发、重启续查不重复提交。
+未执行真实收费调用、实际Host联调或本次远端CI；Beads仍因issue_prefix缺失无法登记任务。
+用户已有 .beads/config.yaml 改动保留。以下发布记录和交接内容均为历史状态。
+
 交接日期：2026-10-27（Asia/Shanghai）。交付分支：`dev`。
 本文随实现一并提交；实际交接提交以 `git log -1` 为准，不在同一提交内填写自身哈希。
 

@@ -11,9 +11,7 @@
         "-m",
         "image_replicator",
         "--project-root",
-        "D:\\MCP\\ecommerce-image-replicator-mcp",
-        "--workspace",
-        "D:\\EcommerceImageReplicator"
+        "D:\\MCP\\ecommerce-image-replicator-mcp"
       ]
     }
   }

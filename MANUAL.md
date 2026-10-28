@@ -32,7 +32,7 @@ Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业�
 安装根 `.env` 提供 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 逐字段 `.env` → 进程 → Windows 当前用户环境，仅缺失可回退；空值、重复、语法错误、
 读取失败均报错。不展开变量，不执行代码；限制为服务账号及必要管理员可读取，修改后重启。
-安装根与 Agent 工作区通过 `--project-root` 和 `--workspace` 分别指定，不依赖 Host cwd。
+安装根固定通过 `--project-root` 指定。已发布 v0.1.1 用 `--workspace` 固定业务目录；当前源码支持任务级目录，见第4节及下方说明，均不依赖 Host cwd。
 
 ## 2. 项目初始化
 
@@ -79,9 +79,11 @@ if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 
 现有用户可以继续显式指定原业务工作区；默认目录改名不代表自动迁移。不要只切换路径后丢弃原`.replicator`，其中包含任务与供应商恢复记录。
 
-## 4. 客户端配置
+## 4. 客户端配置（v0.1.2 候选，待发布核验）
 
-本地 MCP JSON 见根目录 `.mcp.json.example`；使用前填写实际 Agent 工作区绝对路径。
+本节配置用于已完成任务级工作区改造的当前源码，不能直接用于上述 v0.1.1 安装。
+已发布 v0.1.1 仍须在 args 末尾增加 `"--workspace", "D:\\EcommerceImageReplicator"`；现有固定工作区配置继续有效。
+当前源码的本地 MCP JSON 见根目录 `.mcp.json.example`；启动不绑定业务目录。
 后端密钥由 MCP 自行读取安装根 `.env`，不在 Host 配置中传递。
 本地 JSON/Claude Code 项目配置候选（未联调）如下，与模板内容一致：
 
@@ -99,9 +101,7 @@ if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
         "-m",
         "image_replicator",
         "--project-root",
-        "D:\\MCP\\ecommerce-image-replicator-mcp",
-        "--workspace",
-        "D:\\EcommerceImageReplicator"
+        "D:\\MCP\\ecommerce-image-replicator-mcp"
       ]
     }
   }
@@ -116,8 +116,7 @@ command = "uv"
 args = [
   "--directory", "D:\\MCP\\ecommerce-image-replicator-mcp",
   "run", "--no-sync", "python", "-m", "image_replicator",
-  "--project-root", "D:\\MCP\\ecommerce-image-replicator-mcp",
-  "--workspace", "D:\\EcommerceImageReplicator"
+  "--project-root", "D:\\MCP\\ecommerce-image-replicator-mcp"
 ]
 ```
 
@@ -172,18 +171,21 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 
 ## 7. 资源清单
 
+下表对应当前源码的新契约，尚未发布；v0.1.1 保留固定工作区及8工具契约。
+
 | 能力 | 参数和结果 | 副作用 |
 |---|---|---|
 | Resource `replicator://input-contract` | 增量 schema、顺序、预算 | 无收费 |
 | Prompt `prepare_inputs` | 无参数，返回 Agent 输入说明 | 无收费 |
-| Tool `inspect_inputs` | 无参数，返回分组顺序和稳定 image_id | 读取工作区 |
-| Tool `prepare_run` | options：image_model、concurrency、selected_image_ids、review_mode、max_visual_revisions | 冻结 v2 输入，返回 thread_id/jobs |
-| Tool `execute_run` | thread_id | 授权收费，后台执行或恢复 |
-| Tool `get_run` | thread_id；返回状态、jobs、完成时 artifacts | 只读本地 |
-| Tool `reconcile_submission` | thread_id、从0开始的index、供应商task_id | 查询并绑定已知任务，不提交绘图 |
-| Tool `get_design` | thread_id、image_id；返回原图绑定的复刻契约及哈希或缺失的分析字段 | 只读本地 |
-| Tool `record_review` | thread_id、report；必须匹配原图/成图/契约哈希及全部检查项 | 保存对照验收证据，无 API 调用 |
-| Tool `prepare_revision` | parent_thread_id、updates；可选 product_context、legacy_revision_budget | 预留谱系预算并冻结指定图片修订，无 API 调用 |
+| Tool `inspect_inputs` | workspace（任务模式必填），返回分组顺序和稳定 image_id | 读取工作区，可能初始化本地日志 |
+| Tool `prepare_run` | workspace、options：image_model、concurrency、selected_image_ids、review_mode、max_visual_revisions | 冻结 v2 输入，返回 run_id/workspace/thread_id/jobs |
+| Tool `execute_run` | run_id（固定模式兼容 thread_id） | 授权收费，后台执行或恢复 |
+| Tool `get_run` | run_id（固定模式兼容 thread_id）；返回状态、jobs、完成时 artifacts | 本地查询；旧任务首次查询可登记绑定，无 API 调用 |
+| Tool `reconcile_submission` | run_id（固定模式兼容 thread_id）、从0开始的index、供应商task_id | 查询并绑定已知任务，不提交绘图 |
+| Tool `get_design` | run_id（固定模式兼容 thread_id）、image_id；返回原图绑定的复刻契约及哈希或缺失的分析字段 | 只读本地 |
+| Tool `record_review` | run_id（固定模式兼容 thread_id）、report；必须匹配原图/成图/契约哈希及全部检查项 | 保存对照验收证据，无 API 调用 |
+| Tool `prepare_revision` | parent_run_id（固定模式兼容 parent_thread_id）、updates；可选 product_context、legacy_revision_budget | 预留谱系预算并冻结指定图片修订，无 API 调用 |
+| Tool `import_run` | workspace、thread_id | 绑定原工作区已有任务，返回 run_id；无 API 调用 |
 
 工具名称如表，Host 对模型暴露的前缀由 Host 决定。工具失败使用 isError；后台失败为
 run.status=blocked。scheduled 只表示已安排执行，不代表生成成功，使用 get_run 查询。
@@ -255,3 +257,12 @@ v0.1.0在管理员环境首次启动时可能创建仅SYSTEM、Administrators及
 `Cannot initialize workspace journal`也可能是磁盘空间或数据库锁问题，不应一律当作权限错误。保留原文件并检查相应条件。`Workspace directory not found`表示需要先创建业务工作区。
 
 已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。版本展示修正及一致性检查已纳入发布后的源码PR，尚未进入新的发布标签；不覆盖v0.1.1附件。
+
+
+## 任务级工作区使用（v0.1.2 候选，待发布核验）
+
+当前源码提供9个工具，第7节工具表按新契约更新。已发布 v0.1.1 为8个工具，无 import_run，仍需固定工作区。
+省略启动 --workspace 后，Agent 必须在 inspect_inputs / prepare_run 传已有项目绝对目录，保存返回 run_id；
+后续用 run_id 查询、生成、验收与恢复，prepare_revision 用 parent_run_id。旧固定模式继续兼容 thread_id。
+详细调用示例、可选目录限制、索引备份和旧任务导入见[任务级工作区说明](docs/TASK-WORKSPACES.md)。
+无需强制安装配套 Skill 或填写 AGENTS.md / CLAUDE.md；Agent 应先读 MCP 自带资源和提示。

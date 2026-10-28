@@ -12,7 +12,7 @@ class StartupError(Exception):
     """Actionable startup failure safe to print on stderr."""
 
 
-def open_journal(workspace: Path) -> Journal:
+def open_journal(workspace: Path, *, filename: str = "journal.sqlite") -> Journal:
     try:
         root = workspace.resolve(strict=True)
         runtime = safe_path(root, ".replicator", exists=False)
@@ -23,7 +23,7 @@ def open_journal(workspace: Path) -> Journal:
             runtime.mkdir(exist_ok=True)
         else:
             runtime.mkdir(exist_ok=True, mode=0o700)
-        return Journal(safe_path(root, ".replicator/journal.sqlite", exists=False))
+        return Journal(safe_path(root, f".replicator/{filename}", exists=False))
     except PermissionError:
         raise StartupError(
             "Workspace runtime access denied. Check permissions on --workspace and "
