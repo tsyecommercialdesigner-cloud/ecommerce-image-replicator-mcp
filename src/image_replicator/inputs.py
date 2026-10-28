@@ -64,11 +64,13 @@ def stable_image_id(source: str, sha: str) -> str:
     return f"{Path(source).as_posix()}:{sha[:16]}"
 
 
-def inspect_images(root: Path) -> list[dict]:
+def inspect_images(root: Path, max_input_bytes: int | None = None) -> list[dict]:
     def fingerprint(source: str):
         path = safe_path(root, source)
-        if not path.is_file() or path.stat().st_size > 50 * 1024 * 1024:
-            raise ValueError("Input must be a file of at most 50 MiB")
+        if not path.is_file() or (
+            max_input_bytes is not None and path.stat().st_size > max_input_bytes
+        ):
+            raise ValueError("Input must be a file within the configured input byte limit")
         with path.open("rb") as stream:
             return hashlib.file_digest(stream, "sha256").hexdigest()
 
@@ -83,7 +85,14 @@ def inspect_images(root: Path) -> list[dict]:
     ]
 
 
-def freeze(root: Path, options: RunOptions, *, version: int = 2) -> dict:
+def freeze(
+    root: Path,
+    options: RunOptions,
+    *,
+    version: int = 2,
+    max_input_bytes: int | None = None,
+    max_input_pixels: int | None = None,
+) -> dict:
     if version not in {1, 2}:
         raise ValueError("Unsupported manifest version")
     root = root.resolve(strict=True)
@@ -93,15 +102,17 @@ def freeze(root: Path, options: RunOptions, *, version: int = 2) -> dict:
 
     def snapshot(relative: str, image: bool = False):
         source = safe_path(root, relative)
-        if not source.is_file() or source.stat().st_size > 50 * 1024 * 1024:
-            raise ValueError("Input must be a file of at most 50 MiB")
+        if not source.is_file() or (
+            max_input_bytes is not None and source.stat().st_size > max_input_bytes
+        ):
+            raise ValueError("Input must be a file within the configured input byte limit")
         content = source.read_bytes()
         sha = hashlib.sha256(content).hexdigest()
         suffix = source.suffix.lower()
         target = safe_path(root, f".replicator/inputs/{sha}{suffix}", exists=False)
         atomic_write(target, content)
         if image:
-            load_image(target)
+            load_image(target, max_input_pixels)
         return {"source": relative, "sha256": sha, "path": str(target)}
 
     products = [
@@ -114,8 +125,6 @@ def freeze(root: Path, options: RunOptions, *, version: int = 2) -> dict:
     brief = "\n\n".join(
         Path(snapshot(str(p.relative_to(root)))["path"]).read_text(encoding="utf-8") for p in briefs
     )
-    if len(brief) > 100_000:
-        raise ValueError("Product brief exceeds 100000 characters")
     jobs = []
     for group, paths in groups.items():
         delta_path = safe_path(root, f"prompts/{group}.json", exists=False)

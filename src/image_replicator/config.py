@@ -60,19 +60,38 @@ def read_keys(project_root: Path) -> dict[str, str]:
 class Settings:
     project_root: Path
     workspace: Path
-    # Operator supplies provisional budgets; provider compatibility needs validation.
-    max_batch_images: int = 0
-    max_request_bytes: int = 0
-    max_output_tokens: int = 0
-    download_hosts: tuple[str, ...] = ("ai.t8star.org", "files.closeai.fans")
+    # None disables an application limit; provider limits still apply.
+    max_batch_images: int | None = None
+    max_request_bytes: int | None = None
+    max_output_tokens: int | None = None
+    download_hosts: tuple[str, ...] | None = None
     poll_seconds: float = 5.0
-    poll_timeout: float = 300.0
-    max_download_bytes: int = 50 * 1024 * 1024
+    poll_timeout: float | None = None
+    max_download_bytes: int | None = None
+    max_input_bytes: int | None = None
+    max_input_pixels: int | None = None
+    http_timeout: float | None = None
     base_url: str = field(default="https://ai.t8star.org", init=False)
 
+    def __post_init__(self):
+        self.validate_execution()
+
     def validate_execution(self):
-        if min(self.max_batch_images, self.max_request_bytes, self.max_output_tokens) <= 0:
-            raise ValueError(
-                "Configure max-batch-images, max-request-bytes, "
-                "and max-output-tokens before execution"
-            )
+        for name in (
+            "max_batch_images",
+            "max_request_bytes",
+            "max_output_tokens",
+            "max_download_bytes",
+            "max_input_pixels",
+            "max_input_bytes",
+        ):
+            value = getattr(self, name)
+            if value is not None and (type(value) is not int or value <= 0):
+                raise ValueError(f"{name.replace('_', '-')} must be a positive integer if set")
+        for name in ("poll_timeout", "http_timeout"):
+            value = getattr(self, name)
+            if value is not None and (not isinstance(value, (int, float)) or value <= 0):
+                raise ValueError(f"{name.replace('_', '-')} must be positive if set")
+
+    def request_exceeds_limit(self, size: int) -> bool:
+        return self.max_request_bytes is not None and size > self.max_request_bytes

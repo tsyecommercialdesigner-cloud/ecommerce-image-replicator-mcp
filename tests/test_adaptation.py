@@ -344,7 +344,7 @@ async def test_legacy_finished_run_resumes_and_explicit_revision_is_linked(setup
         )
     ]
     with pytest.raises(ValueError, match="budget"):
-        service.revision(legacy["thread_id"], updates)
+        service.revision(legacy["thread_id"], updates, legacy_revision_budget=0)
     child = service.revision(legacy["thread_id"], updates, legacy_revision_budget=1)
     manifest = service.manifest(child["thread_id"])
     assert manifest["jobs"][0]["revision"]["parent_thread_id"] == legacy["thread_id"]

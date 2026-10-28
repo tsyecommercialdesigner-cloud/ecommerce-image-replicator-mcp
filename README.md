@@ -29,7 +29,13 @@ Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\e
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
-日常启动使用 `uv run --no-sync`，不临时安装依赖；未配置预算和密钥不会默认提交收费请求。
+日常启动使用 `uv run --no-sync`，不临时安装依赖；执行仍需用户授权及有效密钥，三项限制按下述策略处理。
+
+**当前未发布源码已将三项执行限制改为按需启用**：默认不限制，无需业务人员配置数值。
+input-contract的execution_limit_policy为opt-in-v1时，batch_images、request_bytes、output_tokens的null分别表示未启用批次图数、请求字节、输出token限制；未设置token限制时省略上游max_tokens。
+可独立通过--max-batch-images、--max-request-bytes、--max-output-tokens设置正整数；显式0或负数无效。调整后只重启当前Host/profile的MCP并读取资源复核，沿原run_id恢复。
+已发布v0.1.2仍采用默认0且阻塞执行的旧策略，需要升级实际服务才能改变；标签和附件未修改。详见[限制策略与恢复](MANUAL.md#执行预算预检配置与原任务恢复)。
+供应商上限、凭据、费用授权及其它运行边界仍生效。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
 MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v012)。
@@ -57,3 +63,6 @@ Host模板见 [docs/hosts](docs/hosts)，包含Cherry Studio、Codex、Claude Co
 DSH区分web/desktop/multica的加载方式；desktop由App启动，不能用npm CLI代替。
 本次文档补充在main/dev，v0.1.2标签与附件保持原样；旧标签用户可直接复制在线手册的完整配置。
 核对来源与验证范围见[Host交付记录](docs/HOST-CONFIG-VALIDATION.md)。
+
+当前未发布源码另将输入/下载大小、下载域名名单、轮询/HTTP超时和新任务并发/修订额度改为默认不限制、显式设置才生效。
+业务文本长度上限已移除；完整检查清单与保留的校验见[运行限制审计](docs/OPERATIONAL-LIMITS.md)。旧任务已冻结额度继续有效。

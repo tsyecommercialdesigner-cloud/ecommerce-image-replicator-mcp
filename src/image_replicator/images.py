@@ -11,7 +11,7 @@ from .storage import atomic_write
 MIN_PIXELS = 655_360
 MAX_PIXELS = 8_294_400
 MAX_EDGE = 4096
-Image.MAX_IMAGE_PIXELS = 40_000_000
+Image.MAX_IMAGE_PIXELS = None  # Optional application pixel cap is checked before decoding.
 
 
 def route_image_model(family: str, canvas: list[int]) -> str:
@@ -27,12 +27,12 @@ def route_image_model(family: str, canvas: list[int]) -> str:
     return family + suffix
 
 
-def load_image(path: Path) -> Image.Image:
+def load_image(path: Path, max_pixels: int | None = None) -> Image.Image:
     with Image.open(path) as image:
         if image.format not in {"PNG", "JPEG"} or getattr(image, "n_frames", 1) != 1:
             raise ValueError("Only single-frame JPEG and PNG images are supported")
-        if image.width * image.height > 40_000_000:
-            raise ValueError("Image exceeds 40 million pixels")
+        if max_pixels is not None and image.width * image.height > max_pixels:
+            raise ValueError("Image exceeds configured input pixel limit")
         image.load()
         return ImageOps.exif_transpose(image).copy()
 

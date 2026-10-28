@@ -1,5 +1,12 @@
 # 本地开发交接文档
 
+2026-10-28 未发布：进一步放开默认运行限额，清单见[OPERATIONAL-LIMITS.md](OPERATIONAL-LIMITS.md)。
+新策略只对显式配置启用限制；保留旧冻结额度、提交防重复及格式/路径/公网下载等校验。
+
+2026-10-28 未发布改造：三项执行限制改为独立可选，默认None/资源null，策略opt-in-v1；
+输出token缺省时省略max_tokens。显式0/负值非法。已发布v0.1.2保持原行为，
+消费指南按资源策略区分新旧实例；本次未修改任何实际Host配置或调用真实供应商。
+
 2026-10-28 四类Host交付补正：上一轮只列“暂不交付”的部分已补为完整配置。
 MANUAL第4节、docs/hosts及README同步，依据和隔离验证范围见[HOST-CONFIG-VALIDATION.md](HOST-CONFIG-VALIDATION.md)。
 含DSH insert结构、desktop保留profile限制及三CLI×三Shell流程；不修改v0.1.2标签或附件。

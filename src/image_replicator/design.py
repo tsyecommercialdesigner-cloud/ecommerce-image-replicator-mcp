@@ -297,7 +297,7 @@ def review_body(
     artifact: Path,
     artifact_sha: str,
     products: list[dict],
-    max_tokens: int,
+    max_tokens: int | None,
 ) -> dict:
     if hashlib.sha256(reference.read_bytes()).hexdigest() != design["reference"]["sha256"]:
         raise ValueError("Frozen reference changed; review rejected")
@@ -305,7 +305,7 @@ def review_body(
     return {
         "model": "gemini-3.8-flash",
         "stream": False,
-        "max_tokens": max_tokens,
+        **({"max_tokens": max_tokens} if max_tokens is not None else {}),
         "messages": [
             {
                 "role": "system",

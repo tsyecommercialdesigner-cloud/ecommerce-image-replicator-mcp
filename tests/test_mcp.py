@@ -60,9 +60,9 @@ async def test_task_workspaces_stdio_restart_and_legacy_import(workspace):
                     assert not imported.is_error
                     assert imported.structured_content["run_id"] == run["run_id"]
                     assert (
-                        await client.call_tool("execute_run", {"run_id": run["run_id"]})
+                        await client.call_tool("execute_run", {"run_id": "run_missing"})
                     ).is_error
-                    # Zero budgets: no provider requests during protocol validation.
+                    # Unknown binding is rejected before any supplier call.
 
 
 async def test_official_mcp_client_stdio_contracts(workspace):
@@ -103,6 +103,23 @@ async def test_official_mcp_client_stdio_contracts(workspace):
             resource = await client.read_resource("replicator://input-contract")
             contract = json.loads(resource.contents[0].text)
             assert contract["alignment_policy"] == "reference-creative-v1"
+            assert contract["execution_limit_policy"] == "opt-in-v1"
+            assert contract["operational_limit_policy"] == "opt-in-v1"
+            assert all(
+                contract[k] is None
+                for k in (
+                    "batch_images",
+                    "request_bytes",
+                    "output_tokens",
+                    "download_hosts",
+                    "input_bytes",
+                    "download_bytes",
+                    "poll_timeout",
+                    "http_timeout",
+                    "default_concurrency",
+                    "default_max_visual_revisions",
+                )
+            )
             assert set(contract["edit_boundary"]["protected"]) == {
                 "composition",
                 "objects",
@@ -155,8 +172,8 @@ async def test_official_mcp_client_stdio_contracts(workspace):
                 },
             )
             assert review.is_error  # no generated artifact; cannot mark prepared input accepted
-            failure = await client.call_tool("execute_run", {"thread_id": thread_id})
-            assert failure.is_error  # explicit missing budgets; no accidental charged call
+            failure = await client.call_tool("execute_run", {"thread_id": "0" * 64})
+            assert failure.is_error  # unknown task; no accidental charged call
             invalid = await client.call_tool("get_run", {"thread_id": "../escape"})
             assert invalid.is_error
             (workspace / "prompts/images_1.json").write_text(

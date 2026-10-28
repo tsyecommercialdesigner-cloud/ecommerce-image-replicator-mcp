@@ -18,7 +18,7 @@ from image_replicator.provider import (
 
 def provider(tmp_path, handler):
     return Provider(
-        Settings(tmp_path, tmp_path, 2, 100_000, 1000),
+        Settings(tmp_path, tmp_path, 2, 100_000, 1000, download_hosts=("ai.t8star.org",)),
         dict.fromkeys(KEYS, "test-not-a-real-key"),
         httpx.AsyncClient(transport=httpx.MockTransport(handler)),
     )

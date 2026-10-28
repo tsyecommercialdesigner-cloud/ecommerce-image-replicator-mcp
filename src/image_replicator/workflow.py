@@ -58,9 +58,9 @@ class Workflow:
                 "gemini-3.8-flash", kind, proposed, schema, self.settings.max_output_tokens
             )
             if (
-                len(proposed) > self.settings.max_batch_images
-                or len(canonical(body).encode()) > self.settings.max_request_bytes
-            ):
+                self.settings.max_batch_images is not None
+                and len(proposed) > self.settings.max_batch_images
+            ) or self.settings.request_exceeds_limit(len(canonical(body).encode())):
                 if not current:
                     raise ValueError("Single reference exceeds configured LLM request limit")
                 batches.append(current)
@@ -68,7 +68,7 @@ class Workflow:
                 body = analysis_body(
                     "gemini-3.8-flash", kind, current, schema, self.settings.max_output_tokens
                 )
-                if len(canonical(body).encode()) > self.settings.max_request_bytes:
+                if self.settings.request_exceeds_limit(len(canonical(body).encode())):
                     raise ValueError("Single reference exceeds configured LLM request limit")
             else:
                 current = proposed
@@ -235,7 +235,7 @@ class Workflow:
                 ],
             }
             # Check body before marking the irreversible boundary.
-            if len(canonical(body).encode()) > self.settings.max_request_bytes:
+            if self.settings.request_exceeds_limit(len(canonical(body).encode())):
                 raise ValueError("Image request exceeds configured byte limit")
             while record["attempts"] < 3:
                 record.update(status="submitting", attempts=record["attempts"] + 1)
@@ -257,7 +257,11 @@ class Workflow:
                 self.journal.put("image", key, record)
                 break
         if record["status"] == "pending":
-            deadline = time.monotonic() + self.settings.poll_timeout
+            deadline = (
+                time.monotonic() + self.settings.poll_timeout
+                if self.settings.poll_timeout is not None
+                else None
+            )
             failures = 0
             while True:
                 try:
@@ -292,7 +296,7 @@ class Workflow:
                     raise ProviderFailure("Provider image task failed")
                 if status not in {"NOT_START", "IN_PROGRESS"}:
                     raise ProviderFailure("Unknown provider task status; task_id retained")
-                if time.monotonic() >= deadline:
+                if deadline is not None and time.monotonic() >= deadline:
                     raise ProviderFailure("Polling deadline reached; resume reuses task_id")
                 await asyncio.sleep(self.settings.poll_seconds)
         items = record["result"].get("data", {}).get("data")
@@ -313,7 +317,9 @@ class Workflow:
         return {"key": key, "task_id": record["task_id"], "raw": str(raw_path)}
 
     async def generate(self, state: GraphState):
-        semaphore = asyncio.Semaphore(state.manifest["options"]["concurrency"])
+        semaphore = asyncio.Semaphore(
+            state.manifest["options"].get("concurrency") or len(state.prepared)
+        )
 
         async def one(index):
             async with semaphore:

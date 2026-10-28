@@ -50,6 +50,24 @@ async def check(project: Path, workspace: Path | None):
                 raise RuntimeError("Installed resource/prompt discovery mismatch")
             contract = await client.read_resource("replicator://input-contract")
             data = json.loads(contract.contents[0].text)
+            if version("ecommerce-image-replicator-mcp") == "0.1.3":
+                if data.get("operational_limit_policy") != "opt-in-v1":
+                    raise RuntimeError("Installed operational limit policy mismatch")
+                for key in (
+                    "batch_images",
+                    "request_bytes",
+                    "output_tokens",
+                    "input_bytes",
+                    "input_pixels",
+                    "download_bytes",
+                    "download_hosts",
+                    "poll_timeout",
+                    "http_timeout",
+                    "default_concurrency",
+                    "default_max_visual_revisions",
+                ):
+                    if data.get(key, "missing") is not None:
+                        raise RuntimeError(f"Default limit is not disabled: {key}")
             if data["alignment_policy"] != "reference-creative-v1":
                 raise RuntimeError("Installed reference policy mismatch")
             if data["workspace_mode"] != ("fixed" if workspace else "task"):
