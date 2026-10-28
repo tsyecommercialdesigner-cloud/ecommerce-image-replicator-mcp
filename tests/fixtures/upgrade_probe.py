@@ -90,8 +90,15 @@ async def main():
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as client:
             await client.discover()
+            contract = json.loads(
+                (await client.read_resource("replicator://input-contract")).contents[0].text
+            )
             assert len((await client.list_tools()).tools) == (
-                8 if version("ecommerce-image-replicator-mcp") == "0.1.1" else 9
+                11
+                if contract.get("analysis_recovery_policy") == "explicit-pre-image-child-v1"
+                else 8
+                if version("ecommerce-image-replicator-mcp") == "0.1.1"
+                else 9
             )
             for thread in state["threads"]:
                 identity = {"thread_id": thread}

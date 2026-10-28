@@ -8,7 +8,9 @@ from pathlib import Path
 import portalocker
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
+from pydantic import ValidationError
 
+from .analysis import AnalysisFailure, analysis_key, clear_analysis_error, schema_locations
 from .config import Settings
 from .images import postprocess, preprocess, route_image_model
 from .inputs import safe_path
@@ -82,40 +84,46 @@ class Workflow:
         descriptions = []
         for batch in self.batches(state.prepared, kind, schema):
             # Includes contract/prompt revision; retries survive process restarts.
-            key = digest(
-                {
-                    "version": 1,
-                    "body": analysis_body(
-                        "gemini-3.8-flash", kind, batch, schema, self.settings.max_output_tokens
-                    ),
-                }
-            )
+            key = analysis_key(self.settings, kind, batch, schema)
             record = self.journal.get("llm", key) or {"attempts": 0}
-            if record.get("terminal_http_status"):
-                raise ProviderFailure(
-                    f"LLM HTTP {record['terminal_http_status']}; "
-                    f"diagnostic={record['diagnostic_id']}; unchanged request is blocked"
-                )
             if "result" in record:
+                try:
+                    parsed = contract.model_validate({"images": record["result"]})
+                    if [item.image_id for item in parsed.images] != [j["image_id"] for j in batch]:
+                        raise ValueError("Cached analysis identity mismatch")
+                except ValueError:
+                    record["failure_code"] = "invalid_analysis_cache"
+                    raise AnalysisFailure(kind, key, record) from None
+                if clear_analysis_error(record):
+                    self.journal.put("llm", key, record)
                 descriptions.extend(record["result"])
                 continue
+            if record.get("terminal_http_status"):
+                raise AnalysisFailure(kind, key, record)
             while record["attempts"] < 6:
                 attempt = record["attempts"]
                 model = "gemini-3.8-flash" if attempt < 3 else "gemini-3.7-flash"
                 record.update(attempts=attempt + 1, model=model)
                 self.journal.put("llm", key, record)
+                stage = "provider_request"
                 try:
                     raw = await self.provider.analyze(
                         analysis_body(model, kind, batch, schema, self.settings.max_output_tokens)
                     )
                     # Keep raw output for local diagnosis; never return it as a tool error.
+                    stage = "response_storage"
                     atomic_write(
                         self.local(f".replicator/llm/{key}-{attempt + 1}.json"), raw.encode()
                     )
-                    result = contract.model_validate(strict_json(raw))
+                    stage = "json_validation"
+                    decoded = strict_json(raw)
+                    stage = "schema_validation"
+                    result = contract.model_validate(decoded)
+                    stage = "identity_validation"
                     if [item.image_id for item in result.images] != [j["image_id"] for j in batch]:
                         raise ValueError("LLM output order/identity mismatch")
                     record["result"] = [item.model_dump() for item in result.images]
+                    clear_analysis_error(record)
                     self.journal.put("llm", key, record)
                     descriptions.extend(record["result"])
                     break
@@ -123,22 +131,44 @@ class Workflow:
                     raise
                 except LLMHTTPFailure as exc:
                     record.update(
-                        error=f"LLM HTTP {exc.status_code}", diagnostic_id=exc.diagnostic_id
+                        error=f"LLM HTTP {exc.status_code}",
+                        diagnostic_id=exc.diagnostic_id,
+                        failure_code="analysis_http_failure",
+                        error_type=type(exc).__name__,
+                    )
+                    record.setdefault("failure_history", []).append(
+                        {
+                            "attempt": attempt + 1,
+                            "code": "analysis_http_failure",
+                            "http_status": exc.status_code,
+                        }
                     )
                     if exc.terminal:
                         record["terminal_http_status"] = exc.status_code
                     self.journal.put("llm", key, record)
                     if exc.terminal:
-                        raise
+                        raise AnalysisFailure(kind, key, record) from None
                     if record["attempts"] < 6:
                         await asyncio.sleep(min(2**attempt, 8))
-                except Exception:
+                except Exception as exc:
                     record["error"] = "LLM request or strict output validation failed"
+                    record["failure_code"] = f"analysis_{stage}_failed"
+                    record["error_type"] = type(exc).__name__
+                    record["schema_errors"] = (
+                        schema_locations(exc) if isinstance(exc, ValidationError) else []
+                    )
+                    record.setdefault("failure_history", []).append(
+                        {
+                            "attempt": attempt + 1,
+                            "code": record["failure_code"],
+                            "error_type": type(exc).__name__,
+                        }
+                    )
                     self.journal.put("llm", key, record)
                     if record["attempts"] < 6:
                         await asyncio.sleep(min(2**attempt, 8))
             else:
-                raise ProviderFailure("LLM exhausted 3 primary and 3 fallback attempts")
+                raise AnalysisFailure(kind, key, record)
         return {"text_descriptions" if kind == "text" else "visual_descriptions": descriptions}
 
     async def describe_text(self, state: GraphState):

@@ -10,15 +10,16 @@ import portalocker
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.graph import END, START, StateGraph
 
+from .analysis import prepare_reference
 from .design import (
     effective_delta,
     generation_inputs,
     generation_prompt,
+    resolve_copy,
     resolve_design,
     review_body,
     review_status,
 )
-from .images import preprocess
 from .inputs import safe_path
 from .models import REFERENCE_POLICY, GraphState
 from .models import ReferenceReviewReport as ReviewReport
@@ -48,18 +49,34 @@ def aggregate(jobs: list[dict]) -> dict:
     }
 
 
+def diagnosed_stage(handler, name: str):
+    async def run(state):
+        try:
+            return await handler(state)
+        except asyncio.CancelledError:
+            raise
+        except Exception as exc:
+            if not hasattr(exc, "diagnostic"):
+                exc.__dict__["diagnostic"] = {
+                    "phase": name,
+                    "error_code": f"{name}_failed",
+                    "recovery_action": (
+                        "preflight_run_then_prepare_analysis_recovery"
+                        if name in {"analyze_missing", "resolve_design"}
+                        else "inspect_original_operation_before_retry"
+                    ),
+                }
+            raise
+
+    return run
+
+
 class ImageWorkflow(Workflow):
     async def prepare_images(self, state: GraphState):
         job = state.manifest["jobs"][0]
-        original = await asyncio.to_thread(Path(job["path"]).read_bytes)
-        if hashlib.sha256(original).hexdigest() != job["sha256"]:
-            raise ValueError("Frozen reference changed")
-        key = digest({"image_id": job["image_id"], "sha256": job["sha256"]})
-        target = self.local(f".replicator/prepared-v2/{key}.png")
         # Distinct identities may contain identical bytes. Avoid replacing a file
         # another image pipeline is reading (not permitted by Windows sharing modes).
-        transform = await asyncio.to_thread(preprocess, Path(job["path"]), target)
-        return {"prepared": [{**job, "transform": transform, "prepared_path": str(target)}]}
+        return {"prepared": [await asyncio.to_thread(prepare_reference, self.root, job)]}
 
     async def describe(self, state: GraphState, kind: str):
         job = state.prepared[0]
@@ -71,17 +88,12 @@ class ImageWorkflow(Workflow):
         return await super().describe(state, kind)
 
     async def analyze_missing(self, state: GraphState):
-        # Let both analysis receipts settle before surfacing a branch error. Journal
-        # caching then resumes the same attempts without starting a cancelled sibling.
-        results = await asyncio.gather(
-            self.describe_text(state), self.describe_visual(state), return_exceptions=True
-        )
-        output = {}
-        for result in results:
-            if isinstance(result, BaseException):
-                raise result
-            output.update(result)
-        return output
+        # Reject bad per-image copy before spending on scene analysis or drawing.
+        text = await self.describe_text(state)
+        delta = effective_delta(state.manifest["product_context"], state.prepared[0]["delta"])
+        resolve_copy(text["text_descriptions"][0]["texts"], delta["text_replacements"] or [])
+        visual = await self.describe_visual(state)
+        return {**text, **visual}
 
     async def compose(self, state: GraphState):
         job = state.prepared[0]
@@ -228,7 +240,7 @@ class ImageWorkflow(Workflow):
             ("postprocess", self.finish),
             ("review", self.review),
         ):
-            graph.add_node(name, handler)
+            graph.add_node(name, diagnosed_stage(handler, name))
         graph.add_edge(START, "preprocess")
         graph.add_edge("preprocess", "analyze_missing")
         graph.add_edge("analyze_missing", "resolve_design")
@@ -266,6 +278,14 @@ class ImageWorkflow(Workflow):
                                         "Historical redesign run is recovery-only; "
                                         "prepare a reference-first run"
                                     )
+                            recovery = self.journal.get("analysis_recovery_link", key)
+                            if recovery:
+                                return {
+                                    **(self.journal.get("job_result", key) or {}),
+                                    **recovery,
+                                    "generation_status": "blocked",
+                                    "review_status": "not_ready",
+                                }
                             config = {
                                 "configurable": {
                                     "thread_id": digest(
@@ -316,6 +336,7 @@ class ImageWorkflow(Workflow):
                                 "generation_status": "blocked",
                                 "review_status": "not_ready",
                                 "error": type(exc).__name__,
+                                **getattr(exc, "diagnostic", {}),
                                 "detail": str(exc)
                                 if isinstance(exc, (ProviderFailure, SubmissionUnknown))
                                 else "Local validation or workflow error; "

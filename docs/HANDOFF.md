@@ -1,3 +1,10 @@
+# v0.1.5后分析恢复与消费手册改造（未提交、未发布）
+
+当前维护源码提供preflight_run、prepare_analysis_recovery和explicit-pre-image-child-v1能力标识，工具增至11，资源/提示仍各1；正式v0.1.5发布仍为9工具。新增非收费的逐图文本/缓存/规则来源预检，以及只针对未提交失败图的关联恢复准备。成功清除活动error但保留历史，流程按阶段报告安全诊断。原任务有恢复指向后跳过该图，防止重复处理；恢复请求在文件锁与SQLite事务下幂等。
+使用说明维护源docs/guidebook-of-ecommerce-image-replicator-mcp.md，同步副本output-docs/docs/同名文件；三份消费约定均相对链接该文件，复制时同时交付docs子目录。手册明确默认规则与逐图覆盖、冻结文件不随磁盘修改、分析恢复与视觉修订的区别。
+本地220通过、1项平台跳过，格式/lint/mypy/秘密检查通过。回归模拟11张中7成功4失败，只恢复4张、原7文件及receipt/原manifest/job_result不变；包括默认规则逐图空数组覆盖、旧成功scene残留error、HTTP重试确认、并发幂等、错误无正文泄漏、stdio发现和isError结构化诊断。源码/wheel本地构建验证交付手册链接及新增模块，无发布操作。
+未访问实际消费任务、密钥或7张成功图，未运行收费请求；本改造没有提交/推送或远端CI。Beads创建记录仍因issue_prefix缺失失败，原.beads/config.yaml改动保留，未初始化或修改。
+
 # v0.1.5 实际交付
 
 v0.1.5 已于 2026-10-28 13:35（Asia/Shanghai）正式发布，目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。

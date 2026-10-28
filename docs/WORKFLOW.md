@@ -1,5 +1,21 @@
 # 电商竞品图复刻：实现契约
 
+## 当前维护源码：逐图预检与显式分析恢复（未发布）
+
+消费端流程、分阶段异常处理和参数示例见[使用手册](guidebook-of-ecommerce-image-replicator-mcp.md)。已发布v0.1.5不含下述新增工具；以实际发现及analysis_recovery_policy=explicit-pre-image-child-v1确认能力。
+
+preflight_run是无供应商请求的本地检查，可能重建失败图的预处理文件，已生成图跳过并保留。返回每图analysis.text/visual状态、转录、原delta/合成effective_delta、默认规则来源、规则索引和安全字段诊断。文字未取得时不能声称替换校验通过；字面匹配失败在场景分析和绘图之前阻断该图。
+
+prepare_analysis_recovery仅选择blocked、无绘图receipt且位于分析/文案阶段的图；只写关联子manifest、准备幂等记录和原图的恢复指向，不执行。完整delta修正不改变冻结product_context；retry_kinds为选中的失败text/visual开独立有限缓存scope，旧缓存/重试记录保留，成功分析不重置。终态HTTP默认拒绝重开，须明确确认配置已修正。相同request_id+参数幂等，已建立后同ID换参数拒绝；所有写入在工作区执行锁和同一SQLite事务内完成。
+
+恢复后的子任务保持parent_thread_id/parent_run_id追溯，只包含选择的失败图片。原任务manifest、已有job_result、receipt与成功产物保持；原任务再执行会跳过有恢复指向的图片。恢复再次失败时沿恢复任务继续准备，不回原任务另开重复分支。unknown/已提交图片必须沿原操作恢复，已有成图视觉修改仍用prepare_revision。
+
+旧v0.1.5及更早不能识别新增的恢复指向/分析scope，不能在恢复准备后继续与新版混用执行同一工作区；不承诺新恢复任务可降级旧版执行。旧任务读取兼容不等于新记录的反向执行兼容。
+
+分析成功清除活动error等失败字段，历史记录保留；读到旧成功缓存时校验schema/顺序/身份后清理旧标记，不发新分析请求。schema错误只暴露允许字段路径/类型；图流程补齐preprocess、analysis、copy_preflight、resolve_design、generate、postprocess、review阶段诊断。恢复预检拒绝使用isError及安全结构化诊断，不能伪装成已受理。
+
+以上验证仅用隔离受控供应商和实际stdio客户端，不触碰消费端原任务或触发真实收费请求。
+
 本契约对应本次用户要求。供应商文档中的历史观察用于适配，不能视为当前真实调用验证。
 
 ## 当前目标：参考图优先复刻

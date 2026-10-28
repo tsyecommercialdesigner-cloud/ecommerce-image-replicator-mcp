@@ -12,6 +12,10 @@
 
 ## 任务级工作区
 
+消费端 Agent 从[使用手册](docs/guidebook-of-ecommerce-image-replicator-mcp.md)开始，按“阶段→诊断→修改位置→恢复入口”处理问题。可复制入口在[output-docs](output-docs/AGENTS.md)：AGENTS.md / CLAUDE.md / CONVENTIONS.md 均相对链接到随包交付的 docs 手册，复制时保留该目录。
+
+当前维护源码新增 `preflight_run` 和 `prepare_analysis_recovery`（尚未发布，v0.1.5没有）：逐图预检文本替换、查看成功缓存及安全错误位置，并仅为未提交的失败图准备关联恢复任务。成功图和原任务保留，准备不执行；分析和绘图仍需单独授权execute。不要把分析失败交给需要已有成图的prepare_revision，也不要通过编辑磁盘文件假定旧冻结任务已更新。
+
 启动不再必须传 `--workspace`。Agent 在 `inspect_inputs` / `prepare_run` 中提供当前项目的绝对目录，
 后续以返回的 `run_id` 生成、查询、验收、修订与恢复。不同项目独立日志、checkpoint、输出和执行锁。
 目录不会随Agent当前项目自动改变；Agent须明确提供目录。任务绑定用于同账号路由，不是多用户权限沙箱。

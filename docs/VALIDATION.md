@@ -1,5 +1,12 @@
 # 验证记录
 
+## 未发布：分析恢复、逐图预检与消费手册
+
+本地完整质量门禁220 passed、1 skipped（平台），格式/lint/mypy/秘密检查通过。实际SDK stdio验证11工具发现、无收费preflight及恢复拒绝的isError/结构化安全诊断；不是实际消费Host或真实供应商验收。
+隔离11图用例证明原7成功图及receipt/manifest/job_result不变，只对4张出图前失败图准备恢复，无自动供应商请求；模拟执行后总假绘图提交11次，原7不重复。其它覆盖分析成功清除旧error、默认规则逐图覆盖、schema定位且无输入正文、未知receipt拒绝、终态HTTP确认、锁与幂等/重启指向。
+三份消费约定正文一致，均链接相邻docs手册；维护源与交付副本逐字节一致，JSON示例可解析。源码包包含两份手册及三入口、无私有.env/任务状态，wheel包含新恢复模块。包仅为本地未发布构建，不替换v0.1.5标签或附件。
+本地证据在.cache/validation/pytest.xml、recovery-new.xml、recovery-integration.xml、guide-final.xml及analysis-recovery-package.json；临时测试/构建目录在核验归档后清理。实际使用见[消费端手册](guidebook-of-ecommerce-image-replicator-mcp.md)。
+
 ## v0.1.5 后台执行异常修复
 
 v0.1.5 已于 2026-10-28 13:35（Asia/Shanghai）正式发布，目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。

@@ -1,5 +1,7 @@
 # 使用手册
 
+当前维护源码增加逐图预检/显式分析恢复，尚未发布；下述v0.1.5实际发布记录和安装目标保持原样。新功能用法见[消费端使用手册](docs/guidebook-of-ecommerce-image-replicator-mcp.md)，先以实际工具发现确认可用，不能仅复制新文档就使用旧服务没有的能力。
+
 v0.1.5 已于 2026-10-28 13:35（Asia/Shanghai）正式发布，目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。
 修复后台Provider初始化失败未落盘、scheduled后始终prepared及任务注册残留；清理失败不覆盖已保存结果，启动前取消与日志写入失败有脱敏观测。
 6项定向回归、完整本地201通过/1项平台跳过，Windows/Linux PR、合入和标签CI通过。
@@ -662,7 +664,7 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 
 ## 7. 资源清单
 
-下表对应 v0.1.2；v0.1.1 保留固定工作区及8工具契约。
+已发布v0.1.2至v0.1.5提供9工具；v0.1.1保留固定工作区及8工具契约。当前维护源码增加下表标注的2个未发布工具，共11工具；资源和提示各1个。
 
 | 能力 | 参数和结果 | 副作用 |
 |---|---|---|
@@ -677,6 +679,8 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 | Tool `record_review` | run_id（固定模式兼容 thread_id）、report；必须匹配原图/成图/契约哈希及全部检查项 | 保存对照验收证据，无 API 调用 |
 | Tool `prepare_revision` | parent_run_id（固定模式兼容 parent_thread_id）、updates；可选 product_context、legacy_revision_budget | 预留谱系预算并冻结指定图片修订，无 API 调用 |
 | Tool `import_run` | workspace、thread_id | 绑定原工作区已有任务，返回 run_id；无 API 调用 |
+| Tool `preflight_run`（未发布） | run_id或固定模式thread_id；可选image_ids | 逐图分析缓存、文字匹配与设计预检，返回analysis/copy_status/规则来源/诊断；可能重建本地预处理图片，无供应商请求 |
+| Tool `prepare_analysis_recovery`（未发布） | run_id或固定模式thread_id、request_id、updates | 仅为blocked且无绘图receipt的图准备关联恢复任务；完整delta修正及失败kind重试，不执行、不改成功产物 |
 
 工具名称如表，Host 对模型暴露的前缀由 Host 决定。工具失败使用 isError；后台失败为
 status=blocked。scheduled 只表示已安排执行，不代表生成成功，使用 get_run 查询。
@@ -830,6 +834,24 @@ v0.1.4已修复v0.1.3的Windows并发目录创建期间，普通路径与扩展�
 不要重建prepare_run、删除任务索引或覆盖已成功产物。真实越界、链接/junction、设备路径及持续权限拒绝仍须排查，不能作为此缺陷绕过校验。旧标签及附件不变。
 
 ## 10. 常见问题
+
+### 分析失败应该修改哪里（当前维护源码）
+
+先get_run再preflight_run；按phase/error_code定位，不根据ValueError或blocked猜节点。完整阶段表和操作示例见[使用手册](docs/guidebook-of-ecommerce-image-replicator-mcp.md)。
+
+copy_replacement_unmatched用replacement_indexes、transcription和replacement_rule_source定位规则。全局默认来自冻结product_context；只对不适用图片的完整delta覆盖text_replacements，空数组表示屏蔽默认规则，其它产品属性/主题色及必要规则继续保留。修改磁盘brief/design.json或prompts不会改变旧run。
+
+分析职责：默认由LangGraph内LLM节点请求供应商分析，不是消费Agent必须手写。有效texts/scene缺省时使用缓存或模型，显式提供时只跳过对应字段；provided不等于LLM成功。另一项已有缓存不会因为只覆盖一项就必定重做。人工覆盖必须真实核实，texts框按0..1000归一化，texts=[]不是自动OCR，scene仍限产品/品牌说明；不能为了跳过分析编造内容或改变参考构图/互动。详见使用手册“谁负责文字和场景分析”。
+
+分析耗尽只对失败的text/visual准备新有限重试scope，成功缓存复用，活动error在成功后清除但失败历史保留。`result`经校验有效时，旧error标记不代表当前失败。schema_errors只含字段路径/错误类型，不回传模型原文或凭据。
+
+prepare_analysis_recovery要求稳定request_id和非空唯一updates。每项必填image_id；delta可选但提供时为完整逐图替换，retry_kinds可选唯一text/visual数组（至少更改delta或指定重试之一）；allow_terminal_http_retry默认false，仅确认操作者修正终态HTTP相关配置后显式启用。终态HTTP重试不授权自动改代理/密钥。
+
+返回preflight_failed时无恢复任务，修正内嵌诊断；recovery_prepared时返回关联子run_id，原任务及7张成功图保留。相同request_id/相同参数重复准备幂等，同ID改参数拒绝；后续跟随recovery_run_id，执行前仍需费用授权。分析LLM请求也可能收费，没有绘图receipt不代表免费。get_run在原任务逐图返回recovery_thread_id/recovery_run_id，子任务有parent_run_id。prepare_revision只用于已有成图，不能用来处理这类失败。
+
+preprocess/本地保存/已有绘图receipt/unknown等问题不通过分析恢复绕过；沿原任务修正本地条件或核查原供应商task_id。准备前持工作区执行锁，活动执行期间拒绝恢复；不删除索引、重写原manifest或清空已成功结果。
+
+兼容性：新版读取旧v2任务，新增记录不迁移或删除原任务；但v0.1.5及更早不识别恢复指向与retry scope。建立新恢复任务后，不混用新旧服务执行同一工作区，不承诺新恢复任务可回滚旧版执行；保留全部新旧状态交由操作者处理。
 
 - scheduled后一直prepared：v0.1.5已修复v0.1.4的Provider初始化异常未落盘及任务注册残留。初始化失败返回blocked、phase=provider_initialization与脱敏异常类型；修正已确认的环境问题后可沿原run_id恢复。旧版需升级实际服务并重启当前连接。若仍不推进，有限间隔查询后保留原run_id和脱敏stderr，不重复execute、不重建任务、不遍历Host配置或擅自终止进程；具体原因须堆栈确认。见[后台执行诊断](docs/BACKGROUND-EXECUTION.md)。
 - 执行限制/密钥错误：先识别新旧限制策略；新策略null无需补预算，显式限制或凭据修改后重启复核。

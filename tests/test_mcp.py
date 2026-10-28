@@ -10,6 +10,59 @@ from mcp.client.stdio import StdioServerParameters, stdio_client
 PROJECT = Path(__file__).resolve().parents[1]
 
 
+async def test_recovery_preflight_failure_is_structured_tool_error_without_payload(workspace):
+    from image_replicator.storage import Journal
+
+    params = StdioServerParameters(
+        command=sys.executable,
+        args=[
+            "-m",
+            "image_replicator",
+            "--project-root",
+            str(PROJECT),
+            "--workspace",
+            str(workspace),
+            "--state-dir",
+            str(workspace),
+        ],
+    )
+    async with stdio_client(params) as (read, write):
+        async with ClientSession(read, write) as client:
+            await client.discover()
+            prepared = (await client.call_tool("prepare_run", {})).structured_content
+            thread = prepared["thread_id"]
+            Journal(workspace / ".replicator/journal.sqlite").put(
+                "job_result", f"{thread}:0", {"generation_status": "blocked"}
+            )
+            secret = "fixture-copy-payload-not-for-error"
+            failed = await client.call_tool(
+                "prepare_analysis_recovery",
+                {
+                    "thread_id": thread,
+                    "request_id": "proposed-copy-conflict",
+                    "updates": [
+                        {
+                            "image_id": prepared["jobs"][0]["image_id"],
+                            "delta": {
+                                "texts": [],
+                                "text_replacements": [
+                                    {"old": secret, "new": "brand", "source": "fixture"}
+                                ],
+                            },
+                        }
+                    ],
+                },
+            )
+            assert failed.is_error
+            assert failed.structured_content["status"] == "preflight_failed"
+            assert (
+                failed.structured_content["preflight"]["jobs"][0]["error_code"]
+                == "copy_input_conflict"
+            )
+            assert secret not in json.dumps(failed.structured_content)
+            assert len(Journal(workspace / ".replicator/journal.sqlite").records("manifest")) == 1
+
+
 async def test_task_workspaces_stdio_restart_and_legacy_import(workspace):
     roots = [workspace / name for name in ("a", "b")]
     for root in roots:
@@ -97,6 +150,8 @@ async def test_official_mcp_client_stdio_contracts(workspace):
                 "get_design",
                 "record_review",
                 "prepare_revision",
+                "preflight_run",
+                "prepare_analysis_recovery",
             }
             resources = await client.list_resources()
             assert len(resources.resources) == 1
@@ -139,6 +194,22 @@ async def test_official_mcp_client_stdio_contracts(workspace):
             assert not status.is_error
             assert len(status.structured_content["jobs"]) == 3
             assert status.structured_content["version"] == 2
+            preflight = await client.call_tool("preflight_run", {"thread_id": thread_id})
+            assert not preflight.is_error
+            assert preflight.structured_content["provider_requests"] == 0
+            assert not preflight.structured_content["ready_for_generation"]
+            assert contract["analysis_recovery_policy"] == "explicit-pre-image-child-v1"
+            rejected_recovery = await client.call_tool(
+                "prepare_analysis_recovery",
+                {
+                    "thread_id": thread_id,
+                    "request_id": "unexecuted-is-not-failed",
+                    "updates": [
+                        {"image_id": status.structured_content["jobs"][0]["image_id"], "delta": {}}
+                    ],
+                },
+            )
+            assert rejected_recovery.is_error  # No API key or provider request is required.
             inspection = await client.call_tool("inspect_inputs", {})
             image_id = inspection.structured_content["images"][1]["image_id"]
             selected = await client.call_tool(

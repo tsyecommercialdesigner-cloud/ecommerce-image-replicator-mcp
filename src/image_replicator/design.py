@@ -58,20 +58,49 @@ def effective_delta(context: dict, delta: dict) -> dict:
     design.update(overrides)
     defaults["design"] = design
     if defaults["texts"] is not None and defaults["text_replacements"]:
-        raise ValueError("Use explicit texts or text_replacements, not both")
+        raise CopyValidationError(
+            "Use explicit texts or text_replacements, not both", "copy_input_conflict", []
+        )
     return defaults
+
+
+class CopyValidationError(ValueError):
+    def __init__(self, message: str, code: str, indexes: list[int]):
+        self.diagnostic = {
+            "phase": "copy_preflight",
+            "error_code": code,
+            "replacement_indexes": indexes,
+            "recovery_action": "correct_selected_delta_with_prepare_analysis_recovery",
+        }
+        super().__init__(message)
 
 
 def resolve_copy(texts: list[dict], replacements: list[dict]) -> list[dict]:
     """Apply evidenced literal edits once; preserve reference boxes and typography."""
     old = [item["old"].casefold() for item in replacements]
     if any(a in b for i, a in enumerate(old) for j, b in enumerate(old) if i != j):
-        raise ValueError("Overlapping or duplicate text replacements")
+        raise CopyValidationError(
+            "Overlapping or duplicate text replacements",
+            "copy_replacements_overlap",
+            list(range(len(old))),
+        )
     if any(a in item["new"].casefold() for a in old for item in replacements):
-        raise ValueError("Replacement copy retains or chains obsolete text")
-    for item in replacements:
-        if not any(re.search(re.escape(item["old"]), t["content"], re.I) for t in texts):
-            raise ValueError("Text replacement has no matching reference transcription")
+        raise CopyValidationError(
+            "Replacement copy retains or chains obsolete text",
+            "copy_replacements_chain",
+            list(range(len(old))),
+        )
+    unmatched = [
+        i
+        for i, item in enumerate(replacements)
+        if not any(re.search(re.escape(item["old"]), t["content"], re.I) for t in texts)
+    ]
+    if unmatched:
+        raise CopyValidationError(
+            "Text replacement has no matching reference transcription",
+            "copy_replacement_unmatched",
+            unmatched,
+        )
     if not replacements:
         return texts
     pattern = re.compile("|".join(re.escape(item["old"]) for item in replacements), re.I)

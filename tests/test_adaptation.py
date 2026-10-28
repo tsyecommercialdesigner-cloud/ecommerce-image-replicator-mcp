@@ -290,7 +290,7 @@ async def test_invalid_vision_review_never_accepts_or_regenerates(setup_v2):
 async def test_identical_reference_bytes_use_distinct_prepared_files(setup_v2, monkeypatch):
     import threading
 
-    import image_replicator.workflow_v2 as workflow_module
+    import image_replicator.analysis as workflow_module
 
     _, workflow, _ = setup_v2
     original = workflow_module.preprocess
@@ -420,7 +420,7 @@ async def test_v2_terminal_analysis_error_blocks_only_affected_image(setup_v2):
     manifest = freeze(workflow.root, RunOptions())
     assert (await workflow.execute(manifest))["status"] == "partial"
     before = len(provider.analysis)
-    assert before == 2
+    assert before == 1  # Text failed; do not spend on unnecessary scene analysis.
     assert len(provider.submissions) == 2
     await workflow.execute(manifest)
     assert len(provider.analysis) == before

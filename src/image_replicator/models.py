@@ -186,6 +186,21 @@ class RevisionUpdate(StrictModel):
     delta: Delta
 
 
+class AnalysisRecoveryUpdate(StrictModel):
+    image_id: str
+    delta: Delta | None = None
+    retry_kinds: list[Literal["text", "visual"]] = Field(default_factory=list)
+    allow_terminal_http_retry: bool = False
+
+    @model_validator(mode="after")
+    def explicit_recovery(self):
+        if self.delta is None and not self.retry_kinds:
+            raise ValueError("Supply a corrected complete delta or explicit analysis retry kinds")
+        if len(set(self.retry_kinds)) != len(self.retry_kinds):
+            raise ValueError("Analysis retry kinds must be unique")
+        return self
+
+
 class RunOptions(StrictModel):
     image_model: Literal["gpt-image-2.5-flare", "gpt-image-2.5-sunburst"] = Field(
         default="gpt-image-2.5-flare",
