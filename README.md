@@ -6,15 +6,15 @@
 
 ## 发布状态
 
-[正式发布v0.1.5](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.5)，2026-10-28 13:35（Asia/Shanghai），目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。
-修复后台初始化异常不落盘与任务注册残留；6项定向回归、本地201通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过。附件/安装、安装后后台恢复及v0.1.4升级回滚保留验证通过。
-详细证据见[发布记录](docs/releases/v0.1.5.md)。
+[正式发布v0.1.6](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.6)，2026-10-28 14:40（Asia/Shanghai），目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。
+新增逐图预检与显式分析恢复，共11工具。220通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过；附件、源码/wheel安装、旧任务升级回滚及安装后保留7图的恢复准备检查通过，无真实收费请求。
+详细证据见[发布记录](docs/releases/v0.1.6.md)。
 
 ## 任务级工作区
 
 消费端 Agent 从[使用手册](docs/guidebook-of-ecommerce-image-replicator-mcp.md)开始，按“阶段→诊断→修改位置→恢复入口”处理问题。可复制入口在[output-docs](output-docs/AGENTS.md)：AGENTS.md / CLAUDE.md / CONVENTIONS.md 均相对链接到随包交付的 docs 手册，复制时保留该目录。
 
-当前维护源码新增 `preflight_run` 和 `prepare_analysis_recovery`（尚未发布，v0.1.5没有）：逐图预检文本替换、查看成功缓存及安全错误位置，并仅为未提交的失败图准备关联恢复任务。成功图和原任务保留，准备不执行；分析和绘图仍需单独授权execute。不要把分析失败交给需要已有成图的prepare_revision，也不要通过编辑磁盘文件假定旧冻结任务已更新。
+v0.1.6新增 `preflight_run` 和 `prepare_analysis_recovery`（v0.1.5没有）：逐图预检文本替换、查看成功缓存及安全错误位置，并仅为未提交的失败图准备关联恢复任务。成功图和原任务保留，准备不执行；分析和绘图仍需单独授权execute。不要把分析失败交给需要已有成图的prepare_revision，也不要通过编辑磁盘文件假定旧冻结任务已更新。
 
 启动不再必须传 `--workspace`。Agent 在 `inspect_inputs` / `prepare_run` 中提供当前项目的绝对目录，
 后续以返回的 `run_id` 生成、查询、验收、修订与恢复。不同项目独立日志、checkpoint、输出和执行锁。
@@ -27,7 +27,7 @@
 ## 安装与使用
 
 Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\ecommerce-image-replicator-mcp`。
-从本仓库取得v0.1.5标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
+从本仓库取得v0.1.6标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
@@ -40,11 +40,11 @@ input-contract的execution_limit_policy为opt-in-v1时，batch_images、request_
 供应商上限、凭据、费用授权及其它运行边界仍生效。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
-MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v015)。
+MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v016)。
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
-- [发布记录](docs/releases/v0.1.5.md)：目标、CI、附件摘要及安装验证。
-- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.4升级v0.1.5及回滚，保留密钥、原工作区模式、显式限制和状态目录。
+- [发布记录](docs/releases/v0.1.6.md)：目标、CI、附件摘要及安装验证。
+- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.5升级v0.1.6及旧任务回滚，保留密钥、原工作区模式、显式限制和状态目录。
 - [保留验证](docs/UPGRADE-PRESERVATION.md)：Windows隔离验证v0.1.1→v0.1.2→v0.1.1，原文件内容/ACL及任务记录保留，未重复提交。
 - [工作流契约](docs/WORKFLOW.md)与[复刻契约](docs/DESIGN-V2.md)：输入及验收边界。
 - [验证记录](docs/VALIDATION.md)与[开发交接](docs/HANDOFF.md)：验证范围及历史决策。

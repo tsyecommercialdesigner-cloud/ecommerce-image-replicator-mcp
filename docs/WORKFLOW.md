@@ -1,8 +1,8 @@
 # 电商竞品图复刻：实现契约
 
-## 当前维护源码：逐图预检与显式分析恢复（未发布）
+## v0.1.6：逐图预检与显式分析恢复
 
-消费端流程、分阶段异常处理和参数示例见[使用手册](guidebook-of-ecommerce-image-replicator-mcp.md)。已发布v0.1.5不含下述新增工具；以实际发现及analysis_recovery_policy=explicit-pre-image-child-v1确认能力。
+消费端流程、分阶段异常处理和参数示例见[使用手册](guidebook-of-ecommerce-image-replicator-mcp.md)。已发布v0.1.5不含v0.1.6新增工具；以实际发现及analysis_recovery_policy=explicit-pre-image-child-v1确认能力。
 
 preflight_run是无供应商请求的本地检查，可能重建失败图的预处理文件，已生成图跳过并保留。返回每图analysis.text/visual状态、转录、原delta/合成effective_delta、默认规则来源、规则索引和安全字段诊断。文字未取得时不能声称替换校验通过；字面匹配失败在场景分析和绘图之前阻断该图。
 
