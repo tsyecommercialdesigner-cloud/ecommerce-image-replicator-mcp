@@ -39,6 +39,7 @@ def setup_v2(workspace, monkeypatch):
 
 def make_report(service, manifest, index=0, verdict="pass"):
     job = service.status(manifest["thread_id"])["jobs"][index]
+    assert "artifact_sha256" in job, job
     plan = service.design(manifest["thread_id"], job["image_id"])["plan"]
     return ReviewReport.model_validate(
         {
@@ -271,7 +272,7 @@ async def test_vision_review_and_cached_resume(setup_v2, verdict, expected):
 
 
 async def test_invalid_vision_review_never_accepts_or_regenerates(setup_v2):
-    _, workflow, provider = setup_v2
+    service, workflow, provider = setup_v2
 
     async def analyze(body):
         provider.analysis.append(body)
@@ -280,10 +281,34 @@ async def test_invalid_vision_review_never_accepts_or_regenerates(setup_v2):
     provider.analyze = analyze
     manifest = freeze(workflow.root, RunOptions(review_mode="vision"))
     result = await workflow.execute(manifest)
-    assert result["status"] == "review_required"
+    assert result["status"] == "review_required", service.status(manifest["thread_id"])
     assert len(result["artifacts"]) == 3
     await workflow.execute(manifest)
     assert len(provider.analysis) == len(provider.submissions) == 3
+
+
+async def test_identical_reference_bytes_use_distinct_prepared_files(setup_v2, monkeypatch):
+    import threading
+
+    import image_replicator.workflow_v2 as workflow_module
+
+    _, workflow, _ = setup_v2
+    original = workflow_module.preprocess
+    targets = set()
+    guard = threading.Lock()
+
+    def preprocess(source, target):
+        with guard:
+            assert target not in targets, "Concurrent jobs must not replace one prepared file"
+            targets.add(target)
+        return original(source, target)
+
+    monkeypatch.setattr(workflow_module, "preprocess", preprocess)
+    manifest = freeze(workflow.root, RunOptions())
+    assert len({job["sha256"] for job in manifest["jobs"]}) == 1
+    result = await workflow.execute(manifest)
+    assert result["generation_complete"], result
+    assert len(targets) == 3
 
 
 async def test_selected_revision_preserves_original_and_enforces_lineage_budget(setup_v2):
