@@ -28,6 +28,7 @@ Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\e
 从本仓库取得v0.1.2标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
+已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
 日常启动使用 `uv run --no-sync`，不临时安装依赖；未配置预算和密钥不会默认提交收费请求。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
@@ -35,6 +36,8 @@ MCP配置见 [.mcp.json.example](.mcp.json.example)，JSON/TOML示例见[MANUAL]
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
 - [发布记录](docs/releases/v0.1.2.md)：目标、CI、附件摘要及安装验证。
+- [升级与回滚](MANUAL.md#5-启动排障与更新)：保留密钥、原工作区、预算和状态目录；回滚v0.1.1须恢复workspace/thread_id。
+- [保留验证](docs/UPGRADE-PRESERVATION.md)：Windows隔离验证v0.1.1→v0.1.2→v0.1.1，原文件内容/ACL及任务记录保留，未重复提交。
 - [工作流契约](docs/WORKFLOW.md)与[复刻契约](docs/DESIGN-V2.md)：输入及验收边界。
 - [验证记录](docs/VALIDATION.md)与[开发交接](docs/HANDOFF.md)：验证范围及历史决策。
 
