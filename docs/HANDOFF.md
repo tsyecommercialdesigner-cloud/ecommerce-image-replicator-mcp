@@ -1,5 +1,9 @@
 # 本地开发交接文档
 
+2026-10-28 四类Host交付补正：上一轮只列“暂不交付”的部分已补为完整配置。
+MANUAL第4节、docs/hosts及README同步，依据和隔离验证范围见[HOST-CONFIG-VALIDATION.md](HOST-CONFIG-VALIDATION.md)。
+含DSH insert结构、desktop保留profile限制及三CLI×三Shell流程；不修改v0.1.2标签或附件。
+
 2026-10-28 手册规范复核补充：MANUAL恢复十节并补齐配置来源、升级/回滚、Host覆盖及工具参数。
 新增Windows隔离保留验证脚本与CI步骤，实际v0.1.1→v0.1.2→v0.1.1通过；报告见
 [UPGRADE-PRESERVATION.md](UPGRADE-PRESERVATION.md)。这是发布后维护，不改变v0.1.2标签或附件。

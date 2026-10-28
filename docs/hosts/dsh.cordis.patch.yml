@@ -1,0 +1,17 @@
+- insert:
+    - id: mcp-ecommerce-image-replicator
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: ecommerce-image-replicator
+        transport: stdio
+        command: uv
+        args:
+          - --directory
+          - 'D:\MCP\ecommerce-image-replicator-mcp'
+          - run
+          - --no-sync
+          - python
+          - -m
+          - image_replicator
+          - --project-root
+          - 'D:\MCP\ecommerce-image-replicator-mcp'

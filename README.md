@@ -32,7 +32,7 @@ Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\e
 日常启动使用 `uv run --no-sync`，不临时安装依赖；未配置预算和密钥不会默认提交收费请求。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
-MCP配置见 [.mcp.json.example](.mcp.json.example)，JSON/TOML示例见[MANUAL](MANUAL.md#4-客户端配置v012)。
+MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v012)。
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
 - [发布记录](docs/releases/v0.1.2.md)：目标、CI、附件摘要及安装验证。
@@ -52,3 +52,8 @@ if ($LASTEXITCODE -ne 0) { throw '本地质量检查失败' }
 
 SDK锁定MCP Python 2.3.0，协议测试为2026-07-28 discover流程。实际Host产品与旧协议兼容尚未验证。
 v0.1.2已修复旧v0.1.1的serverInfo展示版本问题，旧发布附件保持不变；旧运行目录ACL仍不自动修复。
+
+Host模板见 [docs/hosts](docs/hosts)，包含Cherry Studio、Codex、Claude Code、Claude-3p及DSH。
+DSH区分web/desktop/multica的加载方式；desktop由App启动，不能用npm CLI代替。
+本次文档补充在main/dev，v0.1.2标签与附件保持原样；旧标签用户可直接复制在线手册的完整配置。
+核对来源与验证范围见[Host交付记录](docs/HOST-CONFIG-VALIDATION.md)。
