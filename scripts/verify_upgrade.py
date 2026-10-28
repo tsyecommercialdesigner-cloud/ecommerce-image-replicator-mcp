@@ -16,6 +16,7 @@ TARGETS = {
     "v0.1.3": "f437164d10a8a7dd7fd21bd85ee1deccf7b4533e",
     "v0.1.4": "a77ed089de3031cbefdbd235608b6631a95d3e40",
     "v0.1.5": "b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f",
+    "v0.1.6": "1459ebd0e4b63de6bc5a75e41458846f7e6dce83",
 }
 
 

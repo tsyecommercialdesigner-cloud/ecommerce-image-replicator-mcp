@@ -80,6 +80,8 @@ async def test_task_workspaces_stdio_restart_and_legacy_import(workspace):
             str(workspace),
             "--allow-workspace-root",
             str(workspace),
+            "--proxy-mode",
+            "direct",
         ],
         cwd=str(PROJECT),
     )
@@ -90,6 +92,7 @@ async def test_task_workspaces_stdio_restart_and_legacy_import(workspace):
                 await client.discover()
                 resource = await client.read_resource("replicator://input-contract")
                 assert json.loads(resource.contents[0].text)["workspace_mode"] == "task"
+                assert json.loads(resource.contents[0].text)["proxy_mode"] == "direct"
                 assert (await client.call_tool("prepare_run", {})).is_error
                 assert (
                     await client.call_tool("inspect_inputs", {"workspace": str(PROJECT)})
@@ -152,12 +155,15 @@ async def test_official_mcp_client_stdio_contracts(workspace):
                 "prepare_revision",
                 "preflight_run",
                 "prepare_analysis_recovery",
+                "recover_postprocess",
             }
             resources = await client.list_resources()
             assert len(resources.resources) == 1
             resource = await client.read_resource("replicator://input-contract")
             contract = json.loads(resource.contents[0].text)
             assert contract["alignment_policy"] == "reference-creative-v1"
+            assert contract["proxy_mode"] == "environment"
+            assert contract["no_proxy_compatibility"] == "httpx-bracketed-ipv6-v1"
             assert contract["execution_limit_policy"] == "opt-in-v1"
             assert contract["operational_limit_policy"] == "opt-in-v1"
             assert all(

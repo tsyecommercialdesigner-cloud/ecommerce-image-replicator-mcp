@@ -42,6 +42,7 @@ async def check(project: Path, workspace: Path | None):
                 "prepare_revision",
                 "preflight_run",
                 "prepare_analysis_recovery",
+                "recover_postprocess",
                 "reconcile_submission",
             }
             if {item.name for item in tools.tools} != expected:
@@ -52,7 +53,13 @@ async def check(project: Path, workspace: Path | None):
                 raise RuntimeError("Installed resource/prompt discovery mismatch")
             contract = await client.read_resource("replicator://input-contract")
             data = json.loads(contract.contents[0].text)
-            if version("ecommerce-image-replicator-mcp") in {"0.1.3", "0.1.4", "0.1.5", "0.1.6"}:
+            if version("ecommerce-image-replicator-mcp") in {
+                "0.1.3",
+                "0.1.4",
+                "0.1.5",
+                "0.1.6",
+                "0.1.7",
+            }:
                 if data.get("operational_limit_policy") != "opt-in-v1":
                     raise RuntimeError("Installed operational limit policy mismatch")
                 for key in (
@@ -76,7 +83,7 @@ async def check(project: Path, workspace: Path | None):
                 raise RuntimeError("Installed workspace mode mismatch")
     print(
         json.dumps(
-            {"status": "passed", "tools": 11, "resources": 1, "prompts": 1, "provider_requests": 0}
+            {"status": "passed", "tools": 12, "resources": 1, "prompts": 1, "provider_requests": 0}
         )
     )
 

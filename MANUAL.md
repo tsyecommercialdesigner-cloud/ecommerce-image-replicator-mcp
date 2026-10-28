@@ -119,7 +119,7 @@ uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scri
 if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 ```
 
-任务模式启动无需业务目录；选择业务目录时该目录需已存在。成功输出包含9个工具、1个资源、1个提示；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
+任务模式启动无需业务目录；选择业务目录时该目录需已存在。成功输出按实际安装版本报告；正式v0.1.6为11个工具、1个资源、1个提示，维护源码为12个工具；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
 默认任务模式的smoke不验证真实密钥、工作区写权限或供应商认证；真实密钥在执行/供应商查询入口读取校验。
 
 现有用户可以继续显式指定原业务工作区；默认目录改名不代表自动迁移。不要只切换路径后丢弃原`.replicator`，其中包含任务与供应商恢复记录。
@@ -323,7 +323,7 @@ CLI注册写用户作用域，见4.6；项目作用域使用上面的表手工�
 缺少profile时先按其Host初始化，不能用 `--from-default-profile` 重置用户已有profile。
 临时 `--patch` 只在该次CLI启动生效；持久合并后不要同时再加载相同overlay。
 
-启动后确认没有插件加载/连接错误，Agent应看到 `mcp__ecommerce-image-replicator__inspect_inputs` 等9个工具。
+启动后确认没有插件加载/连接错误，Agent应看到 `mcp__ecommerce-image-replicator__inspect_inputs` 等工具（正式v0.1.6共11个，维护源码12个）。
 权限预设若禁用工具，应按用户授权范围启用，不能直接开放所有收费工具。
 该版DSH桥接Tools与Resources，但不桥接MCP Prompts；需从资源/手册获取流程，不把缺少提示模板当作MCP断连。
 `--dump-config` 展示合成配置，可能包含其他插件私密字段，只在本机查看，不提交或共享完整输出。
@@ -482,7 +482,7 @@ Cherry Studio与Claude-3p使用本节GUI流程，没有交付虚构的专用CLI�
 模板均已交付，静态解析、参数一致性和CLI注册/配置合成与GUI端到端分别记录。
 本次不改成员真实Host配置、不调用收费API。完成自己的配置后，逐项检查：
 
-1. MCP启动日志无错误；9个工具可发现，当前会话已启用该服务。
+1. MCP启动日志无错误；工具可发现（正式v0.1.6为11个，维护源码12个），当前会话已启用该服务。
 2. 用真实消费项目绝对路径调用inspect_inputs；文件缺失应返回可解释的检查结果。
 3. Resources/Prompts按Host各自能力检查；DSH不支持Prompts，不能要求它显示提示模板。
 4. 后续生成仍按第8节确认输入与预算；不能为测试连接自动提交绘图。
@@ -652,6 +652,7 @@ if ($LASTEXITCODE -ne 0) { throw '旧版协议检查失败' }
 | --max-input-bytes / --max-download-bytes | 可选正整数字节，默认null | 输入/下载大小按显式值限制 |
 | --max-input-pixels | 可选正整数像素，默认null | 输入解码前检查像素上限 |
 | --poll-timeout / --http-timeout | 可选正整数秒，默认null | 显式启用轮询截止/HTTP超时 |
+| --proxy-mode（维护源码，未发布） | environment（默认）或direct | environment保留环境代理并兼容NO_PROXY方括号IPv6；direct仅让本MCP忽略代理。两种模式都保留SSL_CERT_FILE/SSL_CERT_DIR并校验证书。不改变用户或宿主环境，错误不自动降级直连 |
 
 预算由操作者按供应商协议及费用授权填写，不把示例数字当作供应商上限；发现检查不会验证这些预算。
 
@@ -662,6 +663,10 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 `artifacts` 保存最终结果。入口 `python -m image_replicator`。Release已提供源码包、wheel和摘要/来源文件，不提供额外成员ZIP安装包。源码包采用显式白名单，不包含产品图、竞品图、业务brief、任务数据库或本地证据。
 
 ## 7. 资源清单
+
+维护源码（未发布）提供 `no_proxy_compatibility=httpx-bracketed-ipv6-v1` 和 `proxy_mode` 资源字段。正式v0.1.6没有该兼容逻辑及启动参数。默认配置无需新增参数；确需直连时，仅在当前已获授权配置的服务args中分别加入 `--proxy-mode`、`direct` 两个元素，保留其他参数/密钥/任务，重启当前Host管理的MCP并复核资源proxy_mode=direct。命令行等价：`uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --proxy-mode direct`。不要把NO_PROXY=*写进项目.env期待生效，.env只读取两个Key字段。详见[网络兼容说明](docs/NETWORK-COMPATIBILITY.md)。
+
+维护源码另增 `recover_postprocess`，共12工具，**尚未发布**；下表标明版本边界。当前正式v0.1.6标签/附件仍为11工具。不要只更新本文就假定实际连接已有新能力。
 
 已发布v0.1.2至v0.1.5提供9工具；v0.1.1保留固定工作区及8工具契约。v0.1.6增加下表的2个恢复/预检工具，共11工具；资源和提示各1个。
 
@@ -680,6 +685,7 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 | Tool `import_run` | workspace、thread_id | 绑定原工作区已有任务，返回 run_id；无 API 调用 |
 | Tool `preflight_run`（v0.1.6） | run_id或固定模式thread_id；可选image_ids | 逐图分析缓存、文字匹配与设计预检，返回analysis/copy_status/规则来源/诊断；可能重建本地预处理图片，无供应商请求 |
 | Tool `prepare_analysis_recovery`（v0.1.6） | run_id或固定模式thread_id、request_id、updates | 仅为blocked且无绘图receipt的图准备关联恢复任务；完整delta修正及失败kind重试，不执行、不改成功产物 |
+| Tool `recover_postprocess`（维护源码，未发布） | run_id或固定模式thread_id（二选一），必填非空且不重复的image_ids | 仅v2；使用downloaded receipt及本地raw恢复原任务指定图片。不分析、不下载、不绘图、不调用付费验收。成功图校验哈希并保留；恢复结果review_required。部分失败isError=true，检查逐图jobs。无供应商请求 |
 
 工具名称如表，Host 对模型暴露的前缀由 Host 决定。工具失败使用 isError；后台失败为
 status=blocked。scheduled 只表示已安排执行，不代表生成成功，使用 get_run 查询。
@@ -862,7 +868,7 @@ preprocess/本地保存/已有绘图receipt/unknown等问题不通过分析恢�
 - NOT_START/IN_PROGRESS：继续查询，不重复提交。
 - 提交未知：向供应商找回原 task_id，再 reconcile；无法找回保持阻塞。
 - 下载失败：补充授权域名后恢复已有任务。
-- 返回尺寸不符：原图已保留，先确认供应商 size 行为，避免错误裁剪。
+- 返回尺寸不符：已发布v0.1.6严格拒绝尺寸差异并保留raw。维护源码（未发布）按实际输出触发补偿，比例误差 `max(实际宽×请求高, 实际高×请求宽)/min(...)-1` 不超过1%时归一化请求画布、裁去补边并还原原图精确宽高；超过时返回 `provider_canvas_aspect_mismatch`，不强拉伸。已有downloaded的v2任务使用原run_id和明确image_ids调用recover_postprocess，不重新prepare或execute。原文件、receipt与成功产物保留；缺raw不自动下载。详见[后处理恢复](docs/POSTPROCESS-RECOVERY.md)。
 - 安装失败：核对锁、uv/Python 与 TLS/包源，不删锁或关闭校验。
 - GitHub标签或权限错误：确认Release已公开、账号有仓库权限，并核对SOURCE_COMMIT；不可改装未核验开发HEAD。
 - Host无法发现：先执行smoke.py；模板只验证语法，Host产品、旧协议或CLI注册组合未联调。

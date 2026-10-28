@@ -6,12 +6,27 @@ from pathlib import Path
 
 from PIL import Image, ImageOps
 
-from .storage import atomic_write
+from .storage import atomic_write, canonical
 
 MIN_PIXELS = 655_360
 MAX_PIXELS = 8_294_400
 MAX_EDGE = 4096
 Image.MAX_IMAGE_PIXELS = None  # Optional application pixel cap is checked before decoding.
+CANVAS_ASPECT_PERCENT = 1
+CANVAS_ASPECT_TOLERANCE = CANVAS_ASPECT_PERCENT / 100
+
+
+class CanvasMismatch(ValueError):
+    def __init__(self, actual: list[int], expected: list[int], deviation: float):
+        self.diagnostic = {
+            "phase": "postprocess",
+            "error_code": "provider_canvas_aspect_mismatch",
+            "actual_size": actual,
+            "requested_size": expected,
+            "aspect_deviation": deviation,
+            "recovery_action": "inspect_raw_before_postprocess_recovery",
+        }
+        super().__init__("Provider output canvas aspect differs excessively; raw image retained")
 
 
 def route_image_model(family: str, canvas: list[int]) -> str:
@@ -79,12 +94,20 @@ def postprocess(raw: Path, target_stem: Path, transform: dict) -> Path:
         fmt = image.format
         if fmt not in {"PNG", "JPEG"}:
             raise ValueError("Unexpected provider output format")
-        if list(image.size) != transform["canvas"]:
-            raise ValueError(
-                "Provider output canvas differs from requested size; raw image retained"
-            )
+        if getattr(image, "n_frames", 1) != 1:
+            raise ValueError("Only single-frame provider images are supported")
+        actual = list(image.size)
+        expected = transform["canvas"]
+        ratios = [actual[0] * expected[1], actual[1] * expected[0]]
+        deviation = max(ratios) / min(ratios) - 1
+        # Compare integers so an exact 1% boundary is not rejected by float rounding.
+        if (max(ratios) - min(ratios)) * 100 > min(ratios) * CANVAS_ASPECT_PERCENT:
+            raise CanvasMismatch(actual, expected, deviation)
         image.load()
-        cropped = image.crop(tuple(transform["crop"]))
+        normalized = (
+            image.resize(tuple(expected), Image.Resampling.LANCZOS) if actual != expected else image
+        )
+        cropped = normalized.crop(tuple(transform["crop"]))
         result = cropped.resize(tuple(transform["original"]), Image.Resampling.LANCZOS)
         suffix = ".png" if fmt == "PNG" else ".jpg"
         destination = target_stem.with_suffix(suffix)
@@ -98,4 +121,16 @@ def postprocess(raw: Path, target_stem: Path, transform: dict) -> Path:
         if destination.exists() and destination.read_bytes() != content:
             raise ValueError("Existing artifact differs; refusing to overwrite")
         atomic_write(destination, content)
+        report = {
+            "policy": "canvas-normalize-v1",
+            "actual_size": actual,
+            "requested_size": expected,
+            "final_size": transform["original"],
+            "crop": transform["crop"],
+            "compensated": actual != expected,
+            "aspect_deviation": deviation,
+            "aspect_tolerance": CANVAS_ASPECT_TOLERANCE,
+            "method": "LANCZOS",
+        }
+        atomic_write(destination.with_suffix(".geometry.json"), canonical(report).encode())
         return destination

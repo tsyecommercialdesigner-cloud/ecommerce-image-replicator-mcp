@@ -166,6 +166,7 @@ class ImageWorkflow(Workflow):
                 "artifact": result["artifacts"][0],
                 "artifact_sha256": hashlib.sha256(artifact.read_bytes()).hexdigest(),
                 "reference_sha256": state.prepared[0]["sha256"],
+                "postprocess": self.journal.get("postprocess", state.generated[0]["key"]),
             },
         )
         return result
@@ -286,6 +287,17 @@ class ImageWorkflow(Workflow):
                                     "generation_status": "blocked",
                                     "review_status": "not_ready",
                                 }
+                            local_result = self.journal.get("job_result", key) or {}
+                            if local_result.get("postprocess_recovered"):
+                                artifact = safe_path(self.root, local_result["artifact"])
+                                if (
+                                    hashlib.sha256(artifact.read_bytes()).hexdigest()
+                                    != local_result["artifact_sha256"]
+                                ):
+                                    raise ValueError("Artifact changed after local recovery")
+                                # Local recovery supersedes a pending postprocess checkpoint.
+                                # Preserve subsequent explicit reviews and never replay its graph.
+                                return local_result
                             config = {
                                 "configurable": {
                                     "thread_id": digest(
