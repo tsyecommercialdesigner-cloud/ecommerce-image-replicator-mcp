@@ -1,7 +1,26 @@
 # 使用手册
 
-v0.1.3发布候选，默认不限额及消费端指南已实现，发布目标、CI、附件摘要和安装结果以实际发布后的回填为准。
-已发布v0.1.2保持原样，历史记录见[发布说明](docs/releases/v0.1.2.md)。
+v0.1.3 已于 2026-10-28 12:01（Asia/Shanghai）正式发布，目标 `f437164d10a8a7dd7fd21bd85ee1deccf7b4533e`。
+Windows隔离验证v0.1.2→v0.1.3目标→v0.1.2，测试.env内容/ACL、旧任务/产物和索引保留，待完成任务不重复提交。
+下载附件与GitHub摘要、SHA256SUMS和SOURCE_COMMIT核对通过；源码包锁定无开发依赖安装、wheel锁定依赖安装、任务/固定模式stdio（9工具/1资源/1提示）通过。
+源码包包含三份消费端指南；默认null限制策略经安装验证。包含Windows原子替换短暂拒绝的有限重试，持续拒绝仍保留旧文件并报错。无真实收费API、实际Host产品联调，未修改用户私有Host配置。
+原v0.1.2标签及四个附件标识/摘要保持不变。标签内手册是候选快照，最新交付说明以main为准。
+
+| 发布核对项 | 实际结果 |
+|---|---|
+| Release | [v0.1.3](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.3) |
+| 标签完整SHA | `f437164d10a8a7dd7fd21bd85ee1deccf7b4533e` |
+| PR | [#10](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/10)、补充修复[#11](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/11)，维护Agent评审，无独立人员审批 |
+| PR Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40629171463) |
+| 合入 Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40629394925) |
+| 标签 CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40629620406)，草稿核验后发布 |
+
+| 附件 | SHA256 |
+|---|---|
+| [ecommerce_image_replicator_mcp-0.1.3-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.3/ecommerce_image_replicator_mcp-0.1.3-py3-none-any.whl) | `cec75572d2767c3f3a84b7b7c7ab55f9c5ff731f76d32a47d24a92f8950b5c53` |
+| [ecommerce_image_replicator_mcp-0.1.3.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.3/ecommerce_image_replicator_mcp-0.1.3.tar.gz) | `42b4739367e8c05d52bd941d693a69cfa196a96ea83e2fcd69545ac318ee0a1f` |
+| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.3/SHA256SUMS) | `a954a51723af294ac560818713a2096026c59fb3881babcae0819a10aa6a28aa` |
+| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.3/SOURCE_COMMIT) | `d8dfcf2f37e766c443f560184226d9da084e18a056ffa2e497bcf968f34a2458` |
 
 ## 1. 环境准备
 
@@ -43,7 +62,7 @@ GitHub与PyPI用于下载源码和依赖，供应商域名用于业务请求，�
 
 ## 2. 项目初始化
 
-以下为已发布v0.1.2的固定版本安装流程。
+以下为已发布v0.1.3的固定版本安装流程。
 先从仓库Release核对发布状态、Windows CI及附件SOURCE_COMMIT全文；完整SHA必须对应该标签。
 仓库访问需成员自己的GitHub权限，不能把令牌拼入URL。D盘及运行账号须有相应空间与读写权限。
 
@@ -52,9 +71,9 @@ $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path 'D:\MCP' -Force | Out-Null
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 if (Test-Path $ProjectDir) { throw '目录已存在，请使用更新流程。' }
-$ExpectedCommit = '036ef5e3246ce32f23ddd8138284fc1d18f357ed'
+$ExpectedCommit = 'f437164d10a8a7dd7fd21bd85ee1deccf7b4533e'
 if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA格式不正确，停止安装' }
-git clone --branch v0.1.2 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
+git clone --branch v0.1.3 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw 'clone 失败' }
 $ActualCommit = git -C $ProjectDir rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $ActualCommit -ne $ExpectedCommit) { throw '提交不匹配，停止安装' }
@@ -114,14 +133,15 @@ if ($LASTEXITCODE -ne 0) { throw '升级保留验证失败' }
 
 这是维护者验证命令，不在成员真实安装目录执行。脚本要求本地已有两个正式标签，检查固定SHA，
 在仓库.cache中克隆并安装，finally清理临时环境，报告保留在.cache/validation。
+另已对v0.1.2→v0.1.3目标→v0.1.2完成相同保留验证；维护者可用 `scripts/verify_upgrade.py --candidate v0.1.3` 复现，须先获取v0.1.2/v0.1.3标签。
 详细范围见[保留验证记录](docs/UPGRADE-PRESERVATION.md)；不覆盖真实Host跨权限切换及任意未来版本降级。
 
-## 4. 客户端配置（v0.1.2）
+## 4. 客户端配置（v0.1.3）
 
 本节交付 Cherry Studio、Codex、Claude Code / Claude-3p、DSH 四类 Host 的本地 stdio 配置。
-**已发布v0.1.2的模板省略三项预算，旧版仍须配置正值才能生成。v0.1.3候选源码已改为opt-in-v1：省略即不限制，无需填写三个数值。**
+**已发布v0.1.2的模板省略三项预算，旧版仍须配置正值才能生成。v0.1.3已改为opt-in-v1：省略即不限制，无需填写三个数值。**
 按第5节读取当前连接的策略标识区分新旧行为；仅更新文档不会升级已安装服务。
-模板适用于已发布 v0.1.2；本次补充文档和模板位于 main/dev，不回写 v0.1.2 标签或附件。
+模板适用于v0.1.3；结构也适用于v0.1.2，但旧版仍需预算配置；v0.1.3已包含本节配置和消费端指南，v0.1.2标签和附件保持原样。
 旧标签安装中没有 docs/hosts 时，可直接复制本节完整代码块，无需升级到开发代码。
 服务名统一为 `ecommerce-image-replicator`（26字符，无小数点），安装目录保持
 `D:\MCP\ecommerce-image-replicator-mcp`。所有模板均不设置 cwd、不传后端密钥、不在启动时安装依赖。
@@ -471,13 +491,13 @@ uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m i
 if ($LASTEXITCODE -ne 0) { throw '服务退出失败，检查 stderr。' }
 ```
 
-启动不安装、构建或升级；等待协议输入时没有普通输出是正常行为。v0.1.3候选源码的三项限制可选，默认不限制。已发布v0.1.2收费执行前须追加
+启动不安装、构建或升级；等待协议输入时没有普通输出是正常行为。v0.1.3的三项限制可选，默认不限制。已发布v0.1.2收费执行前须追加
 `--max-batch-images N --max-request-bytes B --max-output-tokens T`，N/B/T 由操作者填写正整数，
 不代表经供应商确认的上限。旧版下载额外域名通过重复 `--download-host` 显式允许；当前源码只有显式名单才限制域名。
 
 ### 执行预算预检、配置与原任务恢复
 
-v0.1.3候选源码（尚未发布）采用默认不限制的 `execution_limit_policy=opt-in-v1`。input-contract中的batch_images、request_bytes、output_tokens为null表示未启用应用限制；正整数表示对应限制已启用。
+v0.1.3采用默认不限制的 `execution_limit_policy=opt-in-v1`。input-contract中的batch_images、request_bytes、output_tokens为null表示未启用应用限制；正整数表示对应限制已启用。
 
 | 资源字段 | 可选启动参数 | 用途 |
 |---|---|---|
@@ -496,7 +516,7 @@ v0.1.3候选源码（尚未发布）采用默认不限制的 `execution_limit_po
 旧实例预算为0时，须升级到包含opt-in-v1的实际发布版本，或在旧配置中补齐三个正值并重启；不能把旧版0解释为不限制。
 此改造未更新任何已发布标签或附件。消费Agent无需翻源码或遍历宿主配置，直接按资源策略向操作者说明版本差异即可。
 
-### 其它限额按需启用（当前源码，尚未发布）
+### 其它限额按需启用（v0.1.3）
 
 资源operational_limit_policy为opt-in-v1时，input_bytes、download_bytes、download_hosts、poll_timeout、http_timeout及default_concurrency/default_max_visual_revisions缺省均为null。
 可选启动参数--max-input-pixels（正整数像素）、--max-input-bytes、--max-download-bytes使用正整数字节，--poll-timeout、--http-timeout使用正整数秒；省略即不限制。
@@ -507,7 +527,7 @@ v0.1.3候选源码（尚未发布）采用默认不限制的 `execution_limit_po
 供应商技术边界、权限/路径/哈希/格式校验、同工作区单执行锁和有限自动重试策略仍生效；不是无限自动收费重试或无条件自动验收。
 完整清单见[运行限制审计](docs/OPERATIONAL-LIMITS.md)。已发布v0.1.2仍遵从旧限制，需升级实际服务才能采用新策略。
 
-### 从 v0.1.1 升级到 v0.1.2
+### 从 v0.1.2 升级到 v0.1.3
 
 先停止所有Host管理的本服务子进程，避免SQLite/WAL备份时仍有写入。记录旧配置，保留原
 `--max-batch-images`、`--max-request-bytes`、`--max-output-tokens`、`--download-host`，以及已用的
@@ -521,7 +541,7 @@ v0.1.3候选源码（尚未发布）采用默认不限制的 `execution_limit_po
 $ErrorActionPreference = 'Stop'
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 $DataDirs = @('D:\EcommerceImageReplicator') # 改成实际原目录，可列多个
-$ExpectedCommit = '036ef5e3246ce32f23ddd8138284fc1d18f357ed'
+$ExpectedCommit = 'f437164d10a8a7dd7fd21bd85ee1deccf7b4533e'
 $ExpectedRepository = 'https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp'
 $Origin = git -C $ProjectDir remote get-url origin
 if ($LASTEXITCODE -ne 0) { throw '无法读取origin' }
@@ -566,11 +586,11 @@ for ($i=0; $i -lt $DataDirs.Count; $i++) {
 }
 Write-Host "备份位置：$Backup；旧提交：$PreviousCommit"
 
-git -C $ProjectDir fetch origin tag v0.1.2
+git -C $ProjectDir fetch origin tag v0.1.3
 if ($LASTEXITCODE -ne 0) { throw '获取标签失败' }
-$Target = git -C $ProjectDir rev-parse 'v0.1.2^{commit}'
+$Target = git -C $ProjectDir rev-parse 'v0.1.3^{commit}'
 if ($LASTEXITCODE -ne 0 -or $Target -ne $ExpectedCommit) { throw '发布提交不匹配' }
-git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.2
+git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.3
 if ($LASTEXITCODE -ne 0) { throw '切换失败，保留数据并停止' }
 uv --directory $ProjectDir sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '锁定安装失败，不启动' }
@@ -588,9 +608,9 @@ Write-Host '安装及发现检查通过；请合并Host配置并按第8节查询
 备份不进Git。任一步失败不执行后续步骤，不使用reset/clean、删除数据库或重建工作区代替恢复。
 若继续使用固定模式，保留旧 `--workspace` 即可；任务模式先import_run再get_run，不重新prepare旧任务。
 
-### 回滚到已发布 v0.1.1
+### 回滚到已发布 v0.1.2
 
-先停止MCP并保留升级后新增数据及索引。以下仅针对已核验的v0.1.1，不能用于任意历史版本：
+先停止MCP并保留升级后新增数据及索引。以下仅针对已核验的v0.1.2，不能用于任意历史版本：
 
 ```powershell
 $ErrorActionPreference = 'Stop'
@@ -598,13 +618,13 @@ $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 $OldWorkspace = 'D:\EcommerceImageReplicator' # 实际原目录，不移动
 $Changes = git -C $ProjectDir status --porcelain
 if ($LASTEXITCODE -ne 0 -or $Changes) { throw '存在本地改动或状态检查失败，停止回滚' }
-git -C $ProjectDir fetch origin tag v0.1.1
+git -C $ProjectDir fetch origin tag v0.1.2
 if ($LASTEXITCODE -ne 0) { throw '获取旧标签失败' }
-$OldCommit = git -C $ProjectDir rev-parse 'v0.1.1^{commit}'
-if ($LASTEXITCODE -ne 0 -or $OldCommit -ne 'c85f396c559411a68bdd5a2cba4bbbe858ab3245') {
+$OldCommit = git -C $ProjectDir rev-parse 'v0.1.2^{commit}'
+if ($LASTEXITCODE -ne 0 -or $OldCommit -ne '036ef5e3246ce32f23ddd8138284fc1d18f357ed') {
     throw '旧标签提交不匹配'
 }
-git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.1
+git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.2
 if ($LASTEXITCODE -ne 0) { throw '源码回滚失败' }
 uv --directory $ProjectDir sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '旧版锁定安装失败' }
@@ -612,10 +632,10 @@ uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root 
 if ($LASTEXITCODE -ne 0) { throw '旧版协议检查失败' }
 ```
 
-Host配置恢复 `--workspace` 和原路径，移除v0.1.1不认识的 `--state-dir`、`--allow-workspace-root`；
-预算和下载域名继续保留。调用恢复为原 `thread_id` / `parent_thread_id`，v0.1.1不识别run_id/import_run。
-不要删除v0.1.2的任务索引，后续升回可继续使用。回滚后的发现为8工具；v0.1.1的serverInfo展示0.1.0是已知历史问题。
-本次验证覆盖原有已完成/待完成任务，不代表任意未来schema、新增修订或所有业务状态都可降级。
+回滚恢复原v0.1.2启动配置：它仍要求三个正值执行预算，并保留原下载域名名单。
+移除v0.1.3新增的--max-input-bytes、--max-input-pixels、--max-download-bytes、--poll-timeout、--http-timeout，否则旧入口拒绝未知参数。
+保留原project-root/state-dir、允许根及业务目录；任务模式继续原run_id，固定模式可继续原thread_id，不删除任务索引。
+验证覆盖升级前的已完成/待完成任务；不保证v0.1.3新增null选项任务或新修订可由旧版执行，回滚前保留新增任务和产物，必要时升回v0.1.3恢复。
 
 ### 启动参数与保留边界
 
@@ -629,6 +649,9 @@ Host配置恢复 `--workspace` 和原路径，移除v0.1.1不认识的 `--state-
 | --max-request-bytes | 可选正整数，新策略默认null | 显式设置才限制请求体字节数；已发布v0.1.2仍默认0并阻塞 |
 | --max-output-tokens | 可选正整数，新策略默认null | 显式设置才限制LLM输出token；已发布v0.1.2仍默认0并阻塞 |
 | --download-host | 可选域名，可重复；默认null | 指定时仅接受该名单；省略不限制公网HTTPS域名 |
+| --max-input-bytes / --max-download-bytes | 可选正整数字节，默认null | 输入/下载大小按显式值限制 |
+| --max-input-pixels | 可选正整数像素，默认null | 输入解码前检查像素上限 |
+| --poll-timeout / --http-timeout | 可选正整数秒，默认null | 显式启用轮询截止/HTTP超时 |
 
 预算由操作者按供应商协议及费用授权填写，不把示例数字当作供应商上限；发现检查不会验证这些预算。
 
@@ -662,7 +685,7 @@ status=blocked。scheduled 只表示已安排执行，不代表生成成功，�
 ### 参数、返回与调用约定
 
 工具均返回结构化对象；精确类型、必填项、嵌套字段和枚举见从实际SDK发现导出的
-[已发布v0.1.2契约快照](docs/MCP-CONTRACT-v0.1.2.json)；未发布源码新增的null限额语义以当前资源与工具发现为准。prepare_inputs是无参数Prompt；input-contract是JSON Resource；
+[已发布v0.1.2契约快照](docs/MCP-CONTRACT-v0.1.2.json)；v0.1.3新增的null限额语义以当前资源与工具发现为准。prepare_inputs是无参数Prompt；input-contract是JSON Resource；
 资源模板无。Tool结果的业务字段并非全部由outputSchema严格枚举，以下说明实际返回，不能把任意dict当业务成功。
 
 | 参数/结果 | 规则 |
@@ -799,6 +822,13 @@ artifacts和输入文件。备份前停止服务并包含SQLite WAL文件。索�
 路径拒绝相对路径、父级跳转、符号链接/junction；缩小允许根后，原任务也会重新校验并可能拒绝恢复。
 当前源码轮询间隔5秒；轮询截止、HTTP超时、下载大小默认不限制，可用可选CLI参数设置。已发布v0.1.2的300秒/50MiB旧默认保持历史行为；未知提交不自动重提。
 停止进程只中断本地等待，不撤销供应商绘图；保留状态并查询原任务。不要重复点击执行来绕过预算或权限错误。
+
+
+### 已知问题：Windows间歇性路径检查拒绝
+
+发布后的文档CI观察到并发图片准备时，safe_path的路径包含检查偶发ValueError，可导致partial/blocked；新增脱敏日志已定位调用位置，尚未完成独立补丁修复。
+先get_run查看逐图状态，保留日志、产物和原run_id；可恢复原任务，遇unknown仍须核查原task_id，不创建新任务绕过。此问题并非用户遗漏预算配置。
+v0.1.3的发布目标、标签及附件保持固定；后续运行代码修复需新补丁版本，不覆盖已有资产。
 
 ## 10. 常见问题
 
