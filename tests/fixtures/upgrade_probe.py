@@ -5,6 +5,7 @@ import base64
 import io
 import json
 import sys
+from importlib.metadata import version
 from pathlib import Path
 
 from mcp.client.session import ClientSession
@@ -89,7 +90,9 @@ async def main():
     async with stdio_client(params) as (read, write):
         async with ClientSession(read, write) as client:
             await client.discover()
-            assert len((await client.list_tools()).tools) == (9 if phase == "upgrade" else 8)
+            assert len((await client.list_tools()).tools) == (
+                8 if version("ecommerce-image-replicator-mcp") == "0.1.1" else 9
+            )
             for thread in state["threads"]:
                 identity = {"thread_id": thread}
                 if phase == "upgrade":

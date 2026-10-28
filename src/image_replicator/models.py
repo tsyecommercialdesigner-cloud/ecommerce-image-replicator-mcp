@@ -28,9 +28,9 @@ class Box(StrictModel):
 
 
 class TextBlock(StrictModel):
-    content: Annotated[str, Field(min_length=1, max_length=4000)]
+    content: Annotated[str, Field(min_length=1)]
     box: Box
-    css: Annotated[str, Field(max_length=2000)]
+    css: str
 
 
 class TextDescription(StrictModel):
@@ -40,7 +40,7 @@ class TextDescription(StrictModel):
 
 class VisualDescription(StrictModel):
     image_id: str
-    scene: Annotated[str, Field(min_length=1, max_length=16000)]
+    scene: Annotated[str, Field(min_length=1)]
 
 
 class TextBatch(StrictModel):
@@ -53,15 +53,15 @@ class VisualBatch(StrictModel):
 
 class SceneObject(StrictModel):
     id: Annotated[str, Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")]
-    description: Annotated[str, Field(min_length=1, max_length=2000)]
+    description: Annotated[str, Field(min_length=1)]
     count: Annotated[int, Field(ge=1, le=100)]
-    placement: Annotated[str, Field(min_length=1, max_length=2000)]
-    action: Annotated[str, Field(min_length=1, max_length=2000)]
+    placement: Annotated[str, Field(min_length=1)]
+    action: Annotated[str, Field(min_length=1)]
 
 
 class LayoutRegion(StrictModel):
     id: Annotated[str, Field(pattern=r"^[a-zA-Z0-9_-]{1,64}$")]
-    purpose: Annotated[str, Field(min_length=1, max_length=1000)]
+    purpose: Annotated[str, Field(min_length=1)]
     box: Box
 
 
@@ -71,12 +71,12 @@ class ProductAttribute(StrictModel):
     property: Literal[
         "name", "dimensions", "material", "color", "pattern", "texture", "specification"
     ]
-    value: Annotated[str, Field(min_length=1, max_length=2000)]
-    source: Annotated[str, Field(min_length=1, max_length=2000)]
+    value: Annotated[str, Field(min_length=1)]
+    source: Annotated[str, Field(min_length=1)]
 
 
 class BrandStyle(StrictModel):
-    palette: list[Annotated[str, Field(min_length=1, max_length=200)]] | None = None
+    palette: list[Annotated[str, Field(min_length=1)]] | None = None
     text_color: (
         Annotated[
             str,
@@ -89,20 +89,19 @@ class BrandStyle(StrictModel):
         ]
         | None
     ) = None
-    tone: Annotated[str, Field(min_length=1, max_length=2000)] | None = None
+    tone: Annotated[str, Field(min_length=1)] | None = None
     art_style: (
         Annotated[
             str,
             Field(
                 min_length=1,
-                max_length=2000,
                 description="Set only for an explicit user art-style request. Otherwise "
                 "omit: preserve each reference's artistic medium even when palette changes.",
             ),
         ]
         | None
     ) = None
-    typography: Annotated[str, Field(min_length=1, max_length=2000)] | None = None
+    typography: Annotated[str, Field(min_length=1)] | None = None
 
 
 class DesignOverrides(StrictModel):
@@ -124,9 +123,9 @@ class DesignOverrides(StrictModel):
 
 
 class CopyReplacement(StrictModel):
-    old: Annotated[str, Field(min_length=1, max_length=1000)]
-    new: Annotated[str, Field(min_length=1, max_length=1000)]
-    source: Annotated[str, Field(min_length=1, max_length=2000)]
+    old: Annotated[str, Field(min_length=1)]
+    new: Annotated[str, Field(min_length=1)]
+    source: Annotated[str, Field(min_length=1)]
 
 
 class Delta(StrictModel):
@@ -138,7 +137,6 @@ class Delta(StrictModel):
             str,
             Field(
                 min_length=1,
-                max_length=16000,
                 description="Product/brand appearance notes only; cannot change composition, "
                 "objects, counts, roles, actions or relationships.",
             ),
@@ -148,7 +146,6 @@ class Delta(StrictModel):
     instruction: Annotated[
         str,
         Field(
-            max_length=16000,
             description="Additional product/brand adaptation only. "
             "Never overrides protected reference scene structure.",
         ),
@@ -157,8 +154,8 @@ class Delta(StrictModel):
 
 
 class ProductFact(StrictModel):
-    value: Annotated[str, Field(min_length=1, max_length=2000)]
-    source: Annotated[str, Field(min_length=1, max_length=2000)]
+    value: Annotated[str, Field(min_length=1)]
+    source: Annotated[str, Field(min_length=1)]
 
 
 class ProductContext(StrictModel):
@@ -170,7 +167,7 @@ class ProductContext(StrictModel):
 class ReviewCheck(StrictModel):
     id: str
     verdict: Literal["pass", "fail", "uncertain"]
-    evidence: Annotated[str, Field(min_length=1, max_length=4000)]
+    evidence: Annotated[str, Field(min_length=1)]
 
 
 class ReviewReport(StrictModel):
@@ -195,10 +192,10 @@ class RunOptions(StrictModel):
         description="Model family; the prepared canvas selects base (<=1024), -2k (<=2048), "
         "or -4k (<=4096) automatically.",
     )
-    concurrency: Annotated[int, Field(ge=1, le=8)] = 2
+    concurrency: Annotated[int, Field(ge=1)] | None = None
     selected_image_ids: Annotated[list[str], Field(min_length=1)] | None = None
     review_mode: Literal["manual", "vision"] = "manual"
-    max_visual_revisions: Annotated[int, Field(ge=0, le=5)] = 0
+    max_visual_revisions: Annotated[int, Field(ge=0)] | None = None
 
 
 @dataclass

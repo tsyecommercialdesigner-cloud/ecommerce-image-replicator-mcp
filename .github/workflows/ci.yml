@@ -32,6 +32,8 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw 'Release tag fetch failed' }
           uv run --no-sync python scripts/verify_upgrade.py
           if ($LASTEXITCODE -ne 0) { throw 'Upgrade preservation failed' }
+          uv run --no-sync python scripts/verify_upgrade.py --candidate HEAD
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate preservation failed' }
       - run: uv run --no-sync pip-audit
       - run: uv build --no-sources
       - name: Preserve test evidence

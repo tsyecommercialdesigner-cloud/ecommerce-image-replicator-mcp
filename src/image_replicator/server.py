@@ -61,7 +61,13 @@ adaptation. Keep evidenced edits and do not invent missing product facts. A know
 may be applied directly; do not ask again for information already supplied. Prepare and review
 the new artifact; never relabel the previous failed artifact as passing merely due to fallback.
 review_mode=vision adds at most one
-vision request per artifact/plan. Batch and byte budgets remain operator-configured.
+vision request per artifact/plan. Execution limits are opt-in: resource policy opt-in-v1
+uses null for unlimited batch_images/request_bytes/output_tokens. Explicit positive startup
+limits apply independently. Omitted output_tokens leaves max_tokens to the provider default.
+Operational limits also default to null: input/download bytes, public HTTPS download host
+allowlist, polling/HTTP deadlines, and new-run concurrency/revision caps. Explicit task options
+and persisted lineage caps remain effective. HTTPS/public-address, path, image, identity and
+unknown-submission checks remain mandatory. Finite automatic retries do not authorize endless POSTs.
 """
 
 
@@ -191,7 +197,7 @@ class Service:
         self,
         parent_thread_id: str,
         updates: list[RevisionUpdate],
-        legacy_revision_budget: int = 0,
+        legacy_revision_budget: int | None = None,
         product_context: ProductContext | None = None,
     ):
         parent = self.manifest(parent_thread_id)
@@ -205,8 +211,8 @@ class Service:
             )
         if not updates or len({u.image_id for u in updates}) != len(updates):
             raise ValueError("Supply unique image IDs and complete replacement deltas")
-        if not 0 <= legacy_revision_budget <= 5:
-            raise ValueError("Legacy revision budget must be between 0 and 5")
+        if legacy_revision_budget is not None and legacy_revision_budget < 0:
+            raise ValueError("Legacy revision budget must be nonnegative if set")
         by_id = {update.image_id: update for update in updates}
         for image_id in by_id:
             self.image_index(parent, image_id)
@@ -291,6 +297,7 @@ class Service:
             for _, budget in reservations:
                 if (
                     child["thread_id"] not in budget["children"]
+                    and budget["limit"] is not None
                     and len(budget["children"]) >= budget["limit"]
                 ):
                     raise ValueError("Visual revision budget exhausted; original results retained")
@@ -417,6 +424,17 @@ def create_server(
                 ],
                 "ordering": "natural filename order within each reference folder",
                 "structured_output": True,
+                "execution_limit_policy": "opt-in-v1",
+                "operational_limit_policy": "opt-in-v1",
+                "download_hosts": settings.download_hosts,
+                "input_bytes": settings.max_input_bytes,
+                "input_pixels": settings.max_input_pixels,
+                "download_bytes": settings.max_download_bytes,
+                "poll_timeout": settings.poll_timeout,
+                "http_timeout": settings.http_timeout,
+                "default_concurrency": None,
+                "default_max_visual_revisions": None,
+                "unlimited_value": None,
                 "batch_images": settings.max_batch_images,
                 "request_bytes": settings.max_request_bytes,
                 "output_tokens": settings.max_output_tokens,
@@ -444,7 +462,7 @@ def create_server(
             return {
                 "workspace": str(root),
                 "groups": discover(root),
-                "images": inspect_images(root),
+                "images": inspect_images(root, service.settings.max_input_bytes),
             }
         except Exception as exc:
             raise ToolError(
@@ -458,7 +476,12 @@ def create_server(
         """Freeze inputs and return a workspace-bound run_id; no API calls."""
         try:
             service = router.for_workspace(workspace)
-            manifest = freeze(service.settings.workspace, options or RunOptions())
+            manifest = freeze(
+                service.settings.workspace,
+                options or RunOptions(),
+                max_input_bytes=service.settings.max_input_bytes,
+                max_input_pixels=service.settings.max_input_pixels,
+            )
             thread_id = manifest["thread_id"]
             service.journal.put("manifest", thread_id, manifest)
             return router.expose(service, service.status(thread_id))
@@ -532,7 +555,7 @@ def create_server(
     def prepare_revision(
         updates: list[RevisionUpdate],
         parent_thread_id: str | None = None,
-        legacy_revision_budget: int = 0,
+        legacy_revision_budget: int | None = None,
         product_context: ProductContext | None = None,
         parent_run_id: str | None = None,
     ) -> dict[str, Any]:
@@ -595,6 +618,16 @@ def create_server(
     return server
 
 
+def positive_limit(value: str) -> int:
+    try:
+        number = int(value)
+    except ValueError:
+        raise argparse.ArgumentTypeError("Limit must be a positive integer") from None
+    if number <= 0:
+        raise argparse.ArgumentTypeError("Limit must be a positive integer")
+    return number
+
+
 def main():
     parser = argparse.ArgumentParser(description="Ecommerce image replicator MCP stdio server")
     parser.add_argument(
@@ -610,12 +643,38 @@ def main():
     parser.add_argument(
         "--state-dir", type=Path, help="Persistent task index directory; defaults to project root"
     )
-    parser.add_argument("--max-batch-images", type=int, default=0)
-    parser.add_argument("--max-request-bytes", type=int, default=0)
-    parser.add_argument("--max-output-tokens", type=int, default=0)
     parser.add_argument(
-        "--download-host", action="append", default=["ai.t8star.org", "files.closeai.fans"]
+        "--max-batch-images",
+        type=positive_limit,
+        default=None,
+        help="Optional positive limit; omitted means unlimited",
     )
+    parser.add_argument(
+        "--max-request-bytes",
+        type=positive_limit,
+        default=None,
+        help="Optional positive limit; omitted means unlimited",
+    )
+    parser.add_argument(
+        "--max-output-tokens",
+        type=positive_limit,
+        default=None,
+        help="Optional positive limit; omitted means unlimited",
+    )
+    parser.add_argument("--download-host", action="append", default=None)
+    for flag in (
+        "max-input-bytes",
+        "max-input-pixels",
+        "max-download-bytes",
+        "poll-timeout",
+        "http-timeout",
+    ):
+        parser.add_argument(
+            "--" + flag,
+            type=positive_limit,
+            default=None,
+            help="Optional positive limit; omitted means unlimited",
+        )
     args = parser.parse_args()
     settings = Settings(
         args.project_root.resolve(strict=True),
@@ -623,7 +682,12 @@ def main():
         args.max_batch_images,
         args.max_request_bytes,
         args.max_output_tokens,
-        tuple(args.download_host),
+        tuple(args.download_host) if args.download_host is not None else None,
+        max_input_bytes=args.max_input_bytes,
+        max_input_pixels=args.max_input_pixels,
+        max_download_bytes=args.max_download_bytes,
+        poll_timeout=args.poll_timeout,
+        http_timeout=args.http_timeout,
     )
     try:
         server = create_server(

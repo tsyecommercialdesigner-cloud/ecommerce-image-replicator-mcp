@@ -1,5 +1,6 @@
 """Opt-in release upgrade/rollback probe; all generated data stays inside .cache."""
 
+import argparse
 import hashlib
 import json
 import os
@@ -41,6 +42,9 @@ def snapshot(paths):
 
 
 def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--candidate", help="Git ref to verify against v0.1.2, then roll back")
+    args = parser.parse_args()
     reports = ROOT / ".cache/validation"
     reports.mkdir(parents=True, exist_ok=True)
     temporary = Path(tempfile.mkdtemp(prefix="upgrade-", dir=ROOT / ".cache"))
@@ -86,9 +90,14 @@ def main():
         run(["git", "clone", "--no-local", "--no-checkout", ROOT, install])
         probe = ROOT / "tests/fixtures/upgrade_probe.py"
         retained = []
-        for phase, tag in (("seed", "v0.1.1"), ("upgrade", "v0.1.2"), ("rollback", "v0.1.1")):
+        phases = (("seed", "v0.1.1"), ("upgrade", "v0.1.2"), ("rollback", "v0.1.1"))
+        if args.candidate:
+            candidate = run(["git", "rev-parse", f"{args.candidate}^{{commit}}"], install)
+            report["candidate"] = candidate
+            phases = (("seed", "v0.1.2"), ("upgrade", candidate), ("rollback", "v0.1.2"))
+        for phase, tag in phases:
             before = snapshot(retained)
-            assert run(["git", "rev-parse", f"{tag}^{{commit}}"], install) == TARGETS[tag]
+            assert run(["git", "rev-parse", f"{tag}^{{commit}}"], install) == TARGETS.get(tag, tag)
             run(["git", "switch", "--detach", "--no-overwrite-ignore", tag], install)
             run(["uv", "sync", "--locked", "--no-dev", "--python", "3.12"], install)
             assert snapshot(retained) == before, "Upgrade changed retained files or ACLs"

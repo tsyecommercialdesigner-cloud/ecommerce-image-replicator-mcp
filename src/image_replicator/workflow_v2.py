@@ -181,7 +181,7 @@ class ImageWorkflow(Workflow):
         record = self.journal.get("review", cache_key)
         try:
             if record is None:
-                if len(canonical(body).encode()) > self.settings.max_request_bytes:
+                if self.settings.request_exceeds_limit(len(canonical(body).encode())):
                     raise ValueError("Review request exceeds configured byte limit")
                 # One vision request per artifact/plan; incomplete reviews need manual review.
                 self.journal.put("review", cache_key, {"status": "started", "attempts": 1})
@@ -249,7 +249,9 @@ class ImageWorkflow(Workflow):
                 str(self.local(".replicator/checkpoints-v2.sqlite"))
             ) as saver:
                 graph = self.compile(saver)
-                semaphore = asyncio.Semaphore(manifest["options"]["concurrency"])
+                semaphore = asyncio.Semaphore(
+                    manifest["options"].get("concurrency") or len(manifest["jobs"])
+                )
 
                 async def one(index, job):
                     async with semaphore:

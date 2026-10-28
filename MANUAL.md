@@ -1,26 +1,7 @@
 # 使用手册
 
-v0.1.2 已于 2026-10-28 08:26（Asia/Shanghai）正式发布。本页按实际发布结果回填；标签内手册保留发布候选快照，不覆盖已发布附件。
-
-| 发布核对项 | 实际结果 |
-|---|---|
-| Release | [v0.1.2](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.2) |
-| 标签完整SHA | `036ef5e3246ce32f23ddd8138284fc1d18f357ed` |
-| PR及审查 | [#6](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/6)；维护代理代码审查，无独立人员审批 |
-| PR Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608059123) |
-| 合入Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608272092) |
-| 标签CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608508449)，先草稿、核验后公开 |
-| 安装验证 | 下载源码包锁定无开发依赖安装、wheel按锁安装依赖通过；9工具/1资源/1提示；任务模式及固定模式stdio通过；无收费调用 |
-
-本地145项通过、1项POSIX测试在Windows跳过；CI覆盖Windows/Linux。仓库未配置分支保护，门禁按流程核对。
-实际Host产品联调未验证。四个附件下载摘要与GitHub摘要一致，两个包与SHA256SUMS一致，SOURCE_COMMIT与标签一致。
-
-| 正式附件 | SHA256 |
-|---|---|
-| [ecommerce_image_replicator_mcp-0.1.2-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/ecommerce_image_replicator_mcp-0.1.2-py3-none-any.whl) | `44eb9df384ca2c02b47070a264ad8ba5ad3880f2a3bda50886862856467a2d87` |
-| [ecommerce_image_replicator_mcp-0.1.2.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/ecommerce_image_replicator_mcp-0.1.2.tar.gz) | `3a2ce3e2ae290bdbeaf2f67bf7c65084ec902d88ed03e3145386df434c809bc1` |
-| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/SHA256SUMS) | `1b47fa36fdb588d0123940165d5ceca4ffad8f281d554e71d69c05d4e581c29d` |
-| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/SOURCE_COMMIT) | `86cc3295ddc142ac58008589e900fdd9246f12ffced94bfd1cf57e097db63e31` |
+v0.1.3发布候选，默认不限额及消费端指南已实现，发布目标、CI、附件摘要和安装结果以实际发布后的回填为准。
+已发布v0.1.2保持原样，历史记录见[发布说明](docs/releases/v0.1.2.md)。
 
 ## 1. 环境准备
 
@@ -138,6 +119,8 @@ if ($LASTEXITCODE -ne 0) { throw '升级保留验证失败' }
 ## 4. 客户端配置（v0.1.2）
 
 本节交付 Cherry Studio、Codex、Claude Code / Claude-3p、DSH 四类 Host 的本地 stdio 配置。
+**已发布v0.1.2的模板省略三项预算，旧版仍须配置正值才能生成。v0.1.3候选源码已改为opt-in-v1：省略即不限制，无需填写三个数值。**
+按第5节读取当前连接的策略标识区分新旧行为；仅更新文档不会升级已安装服务。
 模板适用于已发布 v0.1.2；本次补充文档和模板位于 main/dev，不回写 v0.1.2 标签或附件。
 旧标签安装中没有 docs/hosts 时，可直接复制本节完整代码块，无需升级到开发代码。
 服务名统一为 `ecommerce-image-replicator`（26字符，无小数点），安装目录保持
@@ -488,9 +471,41 @@ uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m i
 if ($LASTEXITCODE -ne 0) { throw '服务退出失败，检查 stderr。' }
 ```
 
-启动不安装、构建或升级；等待协议输入时没有普通输出是正常行为。收费执行前追加
+启动不安装、构建或升级；等待协议输入时没有普通输出是正常行为。v0.1.3候选源码的三项限制可选，默认不限制。已发布v0.1.2收费执行前须追加
 `--max-batch-images N --max-request-bytes B --max-output-tokens T`，N/B/T 由操作者填写正整数，
-不代表经供应商确认的上限。下载额外域名通过重复 `--download-host` 显式允许。
+不代表经供应商确认的上限。旧版下载额外域名通过重复 `--download-host` 显式允许；当前源码只有显式名单才限制域名。
+
+### 执行预算预检、配置与原任务恢复
+
+v0.1.3候选源码（尚未发布）采用默认不限制的 `execution_limit_policy=opt-in-v1`。input-contract中的batch_images、request_bytes、output_tokens为null表示未启用应用限制；正整数表示对应限制已启用。
+
+| 资源字段 | 可选启动参数 | 用途 |
+|---|---|---|
+| batch_images | --max-batch-images | 分析批次图数上限 |
+| request_bytes | --max-request-bytes | 请求体字节上限 |
+| output_tokens | --max-output-tokens | 上游max_tokens；省略时采用供应商默认 |
+
+三项独立可选，无需一次配置齐全；显式配置只接受正整数，0、负数或非法值报错。默认模板可在授权与凭据就绪后直接执行，不需业务人员逐项填值。
+供应商/模型限制、输入文件限制、并发和修订额度、域名权限及绘图授权依然生效。这些参数不是总费用上限，也不是本次选图数量。
+如有运维限额需求，在当前Host/profile目标服务的args中按需追加 `--max-batch-images N`、`--max-request-bytes B` 或 `--max-output-tokens T`，N/B/T替换为操作者确定的正整数。
+每个参数和数值各占一个args元素；保留其它配置，只处理实际使用的profile，不批量改写全部Host配置。
+重启该Host管理的MCP子进程后，从当前连接重新读取资源，确认指定限制生效，未配置项为null，工作区和state_directory保持预期。
+已有任务先get_run，然后沿原run_id执行恢复；无需重写增量或重新prepare，不重复生成已成功产物。
+
+已发布v0.1.2及更早版本没有该策略标识，仍是默认0、执行前要求三个正值的旧行为。
+旧实例预算为0时，须升级到包含opt-in-v1的实际发布版本，或在旧配置中补齐三个正值并重启；不能把旧版0解释为不限制。
+此改造未更新任何已发布标签或附件。消费Agent无需翻源码或遍历宿主配置，直接按资源策略向操作者说明版本差异即可。
+
+### 其它限额按需启用（当前源码，尚未发布）
+
+资源operational_limit_policy为opt-in-v1时，input_bytes、download_bytes、download_hosts、poll_timeout、http_timeout及default_concurrency/default_max_visual_revisions缺省均为null。
+可选启动参数--max-input-pixels（正整数像素）、--max-input-bytes、--max-download-bytes使用正整数字节，--poll-timeout、--http-timeout使用正整数秒；省略即不限制。
+--download-host可重复，省略不限制域名名单，指定后仅允许所列域名（不再自动附加默认两域名）；始终保留公网HTTPS、无URL凭据、443端口及禁止自动重定向检查。
+新任务concurrency默认null，显式正整数才限制并发；max_visual_revisions默认null，显式非负整数才限制修订次数，0禁止修订。legacy_revision_budget同样缺省null。
+新任务不再有并发8/修订5的任意上限；旧任务冻结值及既有谱系额度仍有效。修改启动项后只重启当前Host/profile，复读资源并沿原run_id恢复。
+文案/说明/事实/证据的任意长度上限已取消，必要时通过文件/请求字节预算限制总体体量。
+供应商技术边界、权限/路径/哈希/格式校验、同工作区单执行锁和有限自动重试策略仍生效；不是无限自动收费重试或无条件自动验收。
+完整清单见[运行限制审计](docs/OPERATIONAL-LIMITS.md)。已发布v0.1.2仍遵从旧限制，需升级实际服务才能采用新策略。
 
 ### 从 v0.1.1 升级到 v0.1.2
 
@@ -610,10 +625,10 @@ Host配置恢复 `--workspace` 和原路径，移除v0.1.1不认识的 `--state-
 | --workspace | 路径，可省略 | 给出时固定模式；省略时准备工具必传workspace |
 | --state-dir | 已存在绝对目录，默认安装根 | 保存.replicator/task-registry.sqlite，重启时保持一致 |
 | --allow-workspace-root | 已存在绝对目录，可重复，默认不限根 | 工具工作区须在允许根内；仍受OS权限约束 |
-| --max-batch-images | 整数，默认0 | 批次图数预算，执行前必须正数 |
-| --max-request-bytes | 整数，默认0 | 请求体字节预算，执行前必须正数 |
-| --max-output-tokens | 整数，默认0 | LLM输出预算，执行前必须正数 |
-| --download-host | 域名，可重复 | 显式增加下载主机；保留原授权列表 |
+| --max-batch-images | 可选正整数，新策略默认null | 显式设置才限制分析批次图数；已发布v0.1.2仍默认0并阻塞 |
+| --max-request-bytes | 可选正整数，新策略默认null | 显式设置才限制请求体字节数；已发布v0.1.2仍默认0并阻塞 |
+| --max-output-tokens | 可选正整数，新策略默认null | 显式设置才限制LLM输出token；已发布v0.1.2仍默认0并阻塞 |
+| --download-host | 可选域名，可重复；默认null | 指定时仅接受该名单；省略不限制公网HTTPS域名 |
 
 预算由操作者按供应商协议及费用授权填写，不把示例数字当作供应商上限；发现检查不会验证这些预算。
 
@@ -647,7 +662,7 @@ status=blocked。scheduled 只表示已安排执行，不代表生成成功，�
 ### 参数、返回与调用约定
 
 工具均返回结构化对象；精确类型、必填项、嵌套字段和枚举见从实际SDK发现导出的
-[MCP契约快照](docs/MCP-CONTRACT-v0.1.2.json)。prepare_inputs是无参数Prompt；input-contract是JSON Resource；
+[已发布v0.1.2契约快照](docs/MCP-CONTRACT-v0.1.2.json)；未发布源码新增的null限额语义以当前资源与工具发现为准。prepare_inputs是无参数Prompt；input-contract是JSON Resource；
 资源模板无。Tool结果的业务字段并非全部由outputSchema严格枚举，以下说明实际返回，不能把任意dict当业务成功。
 
 | 参数/结果 | 规则 |
@@ -660,7 +675,7 @@ status=blocked。scheduled 只表示已安排执行，不代表生成成功，�
 | index / task_id | reconcile_submission必填；index为从0开始的整数且在任务范围内，task_id为核实过的供应商编号 |
 | report | record_review必填对象；使用契约review_schema，包含图片/参考/成图/设计哈希及完整检查项，不能用空报告验收 |
 | updates | prepare_revision必填非空数组；每项image_id与完整替换delta；不得重复图片ID |
-| product_context / legacy_revision_budget | 修订可选对象/null；旧v1预算默认0，整数0..5；v2沿用原谱系预算 |
+| product_context / legacy_revision_budget | 修订可选对象/null；新策略旧v1预算默认null，显式非负整数；v2沿用原谱系预算 |
 | inspect_inputs结果 | workspace、groups、images（稳定image_id及权威排序） |
 | prepare/import/get/execute/review结果 | thread_id、run_id、workspace、status、jobs；已完成时包含artifacts等状态字段 |
 | prepare_revision结果 | 新run_id/thread_id、parent_run_id及子任务状态；不提交绘图 |
@@ -669,10 +684,10 @@ status=blocked。scheduled 只表示已安排执行，不代表生成成功，�
 | RunOptions字段 | 类型、默认值与约束 |
 |---|---|
 | image_model | string；默认gpt-image-2.5-flare，或gpt-image-2.5-sunburst |
-| concurrency | integer；默认2，范围1..8；不同工作区各自使用该并发，不是实例总额度 |
+| concurrency | integer/null；新策略默认null，显式正整数；已发布v0.1.2默认2；不同工作区各自使用该并发，不是实例总额度 |
 | selected_image_ids | string数组或null；默认null选全部；提供时至少1项，须来自输入列表 |
 | review_mode | string；manual（默认）或vision；后者可能产生额外LLM费用 |
-| max_visual_revisions | integer；默认0，范围0..5 |
+| max_visual_revisions | integer/null；新策略默认null，显式非负整数；已发布v0.1.2默认0 |
 
 调用示例采用“字段引用”表示从上一步取真实值，不是可以直接粘贴进Shell的命令：
 
@@ -763,7 +778,7 @@ v0.1.2 提供9个工具，第7节工具表按新契约更新。已发布 v0.1.1 
 }
 ```
 
-保存返回run_id，用get_run查询；只有用户要求继续且预算/凭据已配置时才execute_run。
+保存返回run_id，用get_run查询；只有用户要求继续且凭据就绪、符合当前限制策略时才execute_run。
 import_run无供应商调用，不复制文件、不重绘。已完成任务返回原产物；已提交任务沿原task_id查询；未知结果不自动重提。
 缺少thread_id时先找原任务记录，不创建新任务冒充恢复。新模式不扫描磁盘，也不自动识别Host当前项目。
 
@@ -782,12 +797,12 @@ artifacts和输入文件。备份前停止服务并包含SQLite WAL文件。索�
 
 预算、凭据与任务选择属于执行前提；任务模式不限根时仍只能访问运行账号有权限的目录，不是多租户沙箱。
 路径拒绝相对路径、父级跳转、符号链接/junction；缩小允许根后，原任务也会重新校验并可能拒绝恢复。
-默认轮询间隔5秒、单次轮询窗口300秒、下载上限50MiB（代码设置，非CLI参数）；超时按任务状态恢复，不自动重提未知提交。
+当前源码轮询间隔5秒；轮询截止、HTTP超时、下载大小默认不限制，可用可选CLI参数设置。已发布v0.1.2的300秒/50MiB旧默认保持历史行为；未知提交不自动重提。
 停止进程只中断本地等待，不撤销供应商绘图；保留状态并查询原任务。不要重复点击执行来绕过预算或权限错误。
 
 ## 10. 常见问题
 
-- 未配置预算/密钥：配置启动参数和安装根 `.env` 后重启。
+- 执行限制/密钥错误：先识别新旧限制策略；新策略null无需补预算，显式限制或凭据修改后重启复核。
 - 严格 JSON 不支持或截断：核对供应商能力和输出预算；不自动降级自由文本。
 - Gemini schema：项目将本地引用展开并适配供应商 schema 子集，完整约束仍由客户端校验。
   LLM HTTP 400/401/403/404/413/415/422 会阻塞相同请求；查看错误中的 diagnostic_id 对应

@@ -40,7 +40,7 @@ MCP 无法自行知道用户刚在 Host 中选中了哪个项目；Agent 必须�
 1. 按契约在项目目录准备 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`。
 2. `inspect_inputs({"workspace":"D:\\Projects\\ProductA"})` 获取权威图片顺序。可能初始化本地日志目录，无供应商调用。
 3. `prepare_run({"workspace":"D:\\Projects\\ProductA","options":{}})` 冻结输入，保存返回的 `run_id`。
-4. 获得绘图授权且启动预算已配置后，`execute_run({"run_id":"run_…"})` 执行或恢复。
+4. 获得绘图授权且凭据就绪、符合当前限制策略后，`execute_run({"run_id":"run_…"})` 执行或恢复。
 5. `get_run({"run_id":"run_…"})` 查询；用返回的 `workspace` 拼接相对 `artifacts`，不要拼接 Agent 当前目录。
 
 `get_design`、`record_review`、`reconcile_submission` 同样传 `run_id`，其余参数不变。
