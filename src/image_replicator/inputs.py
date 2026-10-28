@@ -2,28 +2,50 @@
 
 import hashlib
 import re
-from pathlib import Path
+from pathlib import Path, PureWindowsPath
 
 from .images import load_image
 from .models import REFERENCE_POLICY, Delta, ProductContext, RunOptions
 from .storage import atomic_write, digest, strict_json
 
 
+def comparable_path(path: Path) -> Path:
+    """Compare ordinary DOS/UNC paths consistently without another filesystem probe."""
+    if not isinstance(path, PureWindowsPath):
+        return path
+    value = str(path)
+    if value.lower().startswith("\\\\?\\unc\\"):
+        value = "\\\\" + value[8:]
+    elif re.match(r"^\\\\\?\\[A-Za-z]:\\", value):
+        value = value[4:]
+    elif value.startswith(("\\\\?\\", "\\\\.\\")):
+        raise ValueError("Unsupported Windows device namespace")
+    normalized = type(path)(value)
+    # Extended paths with these names are not equivalent to ordinary Win32 paths.
+    if any(part.endswith((".", " ")) for part in normalized.parts[1:]):
+        raise ValueError("Ambiguous Windows path component")
+    return normalized
+
+
 def safe_path(root: Path, relative: str, *, exists: bool = True) -> Path:
     root = root.resolve(strict=True)
     candidate = root / relative
-    if Path(relative).is_absolute() or ".." in Path(relative).parts:
+    if Path(relative).anchor or ".." in Path(relative).parts:
         raise ValueError("Only workspace-relative paths are accepted")
+    if isinstance(candidate, PureWindowsPath) and any(":" in p for p in Path(relative).parts):
+        raise ValueError("Windows alternate streams are not accepted")
     # Refuse symlinks, including intermediate directories, for inputs and outputs.
     cursor = root
     for part in Path(relative).parts:
         cursor = cursor / part
         if cursor.is_symlink() or cursor.is_junction():
             raise ValueError("Symlink paths are not allowed")
-    resolved = candidate.resolve(strict=exists)
-    if not resolved.is_relative_to(root):
+    resolved = comparable_path(candidate.resolve(strict=exists))
+    comparison_root = comparable_path(root)
+    if not resolved.is_relative_to(comparison_root):
         raise ValueError("Path escapes authorized workspace")
-    return resolved
+    # Preserve the root's representation for downstream relative_to and task bindings.
+    return root / resolved.relative_to(comparison_root)
 
 
 def natural_key(path: Path):
