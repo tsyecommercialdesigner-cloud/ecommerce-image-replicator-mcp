@@ -1,5 +1,10 @@
 # 运行限制全面检查（2026-10-28，尚未发布）
 
+v0.1.3已于2026-10-28 12:01（Asia/Shanghai）发布，目标f437164d10a8a7dd7fd21bd85ee1deccf7b4533e。
+PR #10/#11及修复后合入/标签Windows/Linux CI通过，下载摘要、锁定安装及默认null契约验证通过。
+候选升级/回滚验证保留测试.env及ACL、任务/索引和产物；无收费调用。实际证据见[发布记录](releases/v0.1.3.md)。
+以下未发布及失败记录为历史阶段，原v0.1.2标签和附件不变。
+
 完整清单见[OPERATIONAL-LIMITS.md](OPERATIONAL-LIMITS.md)。本地质量门禁167通过、1项POSIX跳过，格式/lint/mypy/秘密检查通过。
 新增运行限制用例7项，覆盖输入字节/像素与长brief、默认与显式下载大小和域名名单、公网HTTPS校验、
 默认无修订限额及旧显式0保留、无HTTP超时；stdio资源返回完整默认null策略。

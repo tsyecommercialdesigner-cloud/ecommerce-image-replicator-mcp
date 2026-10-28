@@ -6,11 +6,9 @@
 
 ## 发布状态
 
-**[v0.1.2 已发布](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.2)**（2026-10-28 08:26，Asia/Shanghai），目标提交 `036ef5e3246ce32f23ddd8138284fc1d18f357ed`。
-[PR #6](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/6)、[PR CI](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608059123)、
-[合入 CI](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608272092)及[标签 CI/CD](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608508449)通过 Windows/Linux 检查。
-本地145项通过、1项平台跳过；正式附件摘要、源码包锁定安装、wheel安装和stdio验证通过。
-维护代理代码审查，无独立人员审批；实际Host产品联调未验证，本次未调用真实收费API。
+[正式发布v0.1.3](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.3)，2026-10-28 12:01（Asia/Shanghai），目标 `f437164d10a8a7dd7fd21bd85ee1deccf7b4533e`。
+本地172通过/1项平台跳过，Windows/Linux PR、合入与标签CI通过；安装/摘要和升级保留验证通过。
+详细证据见[发布记录](docs/releases/v0.1.3.md)。
 
 ## 任务级工作区
 
@@ -25,23 +23,23 @@
 ## 安装与使用
 
 Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\ecommerce-image-replicator-mcp`。
-从本仓库取得v0.1.2标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
+从本仓库取得v0.1.3标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
 日常启动使用 `uv run --no-sync`，不临时安装依赖；执行仍需用户授权及有效密钥，三项限制按下述策略处理。
 
-**当前未发布源码已将三项执行限制改为按需启用**：默认不限制，无需业务人员配置数值。
+**v0.1.3已将三项执行限制改为按需启用**：默认不限制，无需业务人员配置数值。
 input-contract的execution_limit_policy为opt-in-v1时，batch_images、request_bytes、output_tokens的null分别表示未启用批次图数、请求字节、输出token限制；未设置token限制时省略上游max_tokens。
 可独立通过--max-batch-images、--max-request-bytes、--max-output-tokens设置正整数；显式0或负数无效。调整后只重启当前Host/profile的MCP并读取资源复核，沿原run_id恢复。
 已发布v0.1.2仍采用默认0且阻塞执行的旧策略，需要升级实际服务才能改变；标签和附件未修改。详见[限制策略与恢复](MANUAL.md#执行预算预检配置与原任务恢复)。
 供应商上限、凭据、费用授权及其它运行边界仍生效。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
-MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v012)。
+MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v013)。
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
-- [发布记录](docs/releases/v0.1.2.md)：目标、CI、附件摘要及安装验证。
+- [发布记录](docs/releases/v0.1.3.md)：目标、CI、附件摘要及安装验证。
 - [升级与回滚](MANUAL.md#5-启动排障与更新)：保留密钥、原工作区、预算和状态目录；回滚v0.1.1须恢复workspace/thread_id。
 - [保留验证](docs/UPGRADE-PRESERVATION.md)：Windows隔离验证v0.1.1→v0.1.2→v0.1.1，原文件内容/ACL及任务记录保留，未重复提交。
 - [工作流契约](docs/WORKFLOW.md)与[复刻契约](docs/DESIGN-V2.md)：输入及验收边界。
@@ -61,8 +59,8 @@ v0.1.2已修复旧v0.1.1的serverInfo展示版本问题，旧发布附件保持�
 
 Host模板见 [docs/hosts](docs/hosts)，包含Cherry Studio、Codex、Claude Code、Claude-3p及DSH。
 DSH区分web/desktop/multica的加载方式；desktop由App启动，不能用npm CLI代替。
-本次文档补充在main/dev，v0.1.2标签与附件保持原样；旧标签用户可直接复制在线手册的完整配置。
+v0.1.3发布包含三份消费端指南；旧v0.1.2服务需按升级流程更新，不能仅复制新指南改变服务行为。
 核对来源与验证范围见[Host交付记录](docs/HOST-CONFIG-VALIDATION.md)。
 
-当前未发布源码另将输入/下载大小、下载域名名单、轮询/HTTP超时和新任务并发/修订额度改为默认不限制、显式设置才生效。
+v0.1.3另将输入/下载大小、下载域名名单、轮询/HTTP超时和新任务并发/修订额度改为默认不限制、显式设置才生效。
 业务文本长度上限已移除；完整检查清单与保留的校验见[运行限制审计](docs/OPERATIONAL-LIMITS.md)。旧任务已冻结额度继续有效。
