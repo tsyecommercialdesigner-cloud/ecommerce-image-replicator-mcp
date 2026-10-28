@@ -5,6 +5,7 @@ import json
 import os
 import sqlite3
 import tempfile
+import time
 from contextlib import contextmanager
 from pathlib import Path
 
@@ -40,7 +41,16 @@ def atomic_write(path: Path, content: bytes):
             handle.write(content)
             handle.flush()
             os.fsync(handle.fileno())
-        os.replace(temp, path)
+        for attempt in range(4):
+            try:
+                os.replace(temp, path)
+                break
+            except PermissionError as exc:
+                # Windows readers/scanners can briefly deny atomic replacement.
+                # Preserve the old file and propagate permanent access denial.
+                if getattr(exc, "winerror", None) not in {5, 32, 33} or attempt == 3:
+                    raise
+                time.sleep(0.05 * (2**attempt))
     finally:
         if os.path.exists(temp):
             os.unlink(temp)
