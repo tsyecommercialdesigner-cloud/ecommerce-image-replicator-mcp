@@ -6,9 +6,9 @@
 
 ## 发布状态
 
-[正式发布v0.1.4](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.4)，2026-10-28 12:31（Asia/Shanghai），目标 `a77ed089de3031cbefdbd235608b6631a95d3e40`。
-修复Windows并发准备图片的路径包含检查误拒绝；23项定向回归、完整本地195通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过。附件/安装和v0.1.3升级回滚保留验证通过。
-详细证据见[发布记录](docs/releases/v0.1.4.md)。
+[正式发布v0.1.5](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.5)，2026-10-28 13:35（Asia/Shanghai），目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。
+修复后台初始化异常不落盘与任务注册残留；6项定向回归、本地201通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过。附件/安装、安装后后台恢复及v0.1.4升级回滚保留验证通过。
+详细证据见[发布记录](docs/releases/v0.1.5.md)。
 
 ## 任务级工作区
 
@@ -23,7 +23,7 @@
 ## 安装与使用
 
 Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\ecommerce-image-replicator-mcp`。
-从本仓库取得v0.1.4标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
+从本仓库取得v0.1.5标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
@@ -36,11 +36,11 @@ input-contract的execution_limit_policy为opt-in-v1时，batch_images、request_
 供应商上限、凭据、费用授权及其它运行边界仍生效。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
-MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v014)。
+MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v015)。
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
-- [发布记录](docs/releases/v0.1.4.md)：目标、CI、附件摘要及安装验证。
-- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.3升级v0.1.4及回滚，保留密钥、原工作区模式、显式限制和状态目录。
+- [发布记录](docs/releases/v0.1.5.md)：目标、CI、附件摘要及安装验证。
+- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.4升级v0.1.5及回滚，保留密钥、原工作区模式、显式限制和状态目录。
 - [保留验证](docs/UPGRADE-PRESERVATION.md)：Windows隔离验证v0.1.1→v0.1.2→v0.1.1，原文件内容/ACL及任务记录保留，未重复提交。
 - [工作流契约](docs/WORKFLOW.md)与[复刻契约](docs/DESIGN-V2.md)：输入及验收边界。
 - [验证记录](docs/VALIDATION.md)与[开发交接](docs/HANDOFF.md)：验证范围及历史决策。
@@ -67,4 +67,4 @@ v0.1.3另将输入/下载大小、下载域名名单、轮询/HTTP超时和新�
 
 v0.1.4已修复Windows并发准备图片的路径包含检查误拒绝。升级并重启当前MCP后，沿原run_id查询与恢复，不重建任务；unknown先核查原供应商task_id。真实越界、junction或权限错误仍拒绝，见[根因与恢复边界](docs/WINDOWS-PATH-FIX.md)。
 
-v0.1.4另有后台Provider初始化异常未落盘、任务注册未清理的缺口，可能表现为scheduled后始终prepared。维护源码已补齐异常处理与回归，尚未发布；具体消费端触发原因仍须脱敏stderr确认。排查及原任务恢复见[后台执行诊断](docs/BACKGROUND-EXECUTION.md)，不要重复提交或重建任务。
+v0.1.5已修复v0.1.4后台Provider初始化异常未落盘、任务注册未清理的缺口。初始化失败可见blocked/phase，修正已确认问题或更新并重启实际服务后沿原run_id恢复，保留receipt和成功产物。消费端具体触发原因仍须脱敏stderr确认，排查边界见[后台执行诊断](docs/BACKGROUND-EXECUTION.md)。
