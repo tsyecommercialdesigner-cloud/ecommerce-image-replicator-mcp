@@ -1,5 +1,11 @@
 # 升级与回滚保留验证
 
+## v0.1.6 → v0.1.7 → v0.1.6
+
+Windows本地及PR/合入/标签CI保留验证通过。基线 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`，发布目标 `88ef28e76bdcd2cf7f3738e25e157ff7841a6cb3`。升级前旧任务的.env字节/ACL、索引、工作区、成功产物保留；pending receipt沿原身份恢复，三阶段假提交总数保持2，真实供应商请求0，临时环境清理完成。
+运行 `uv run --no-sync python scripts/verify_upgrade.py --candidate v0.1.7 --baseline v0.1.6` 可复现，先获取相关标签。首次本地升级检查发现旧夹具工具数遗漏12工具，已按新能力标识补齐，不降低旧版断言；修复后的Windows CI通过。
+两种下载包另验证精确790×857恢复、保留7成功图/receipt、重启幂等及代理environment/direct初始化。新本地恢复标记不能交旧版执行；回滚只覆盖升级前旧任务，不混用版本，不删新状态，移除旧版不支持的--proxy-mode参数。
+
 ## v0.1.5 → v0.1.6 → v0.1.5
 
 Windows本地候选及PR/合入/标签CI通过。基线 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`，发布目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。

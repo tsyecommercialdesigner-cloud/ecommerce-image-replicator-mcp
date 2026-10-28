@@ -6,15 +6,19 @@
 
 ## 发布状态
 
-当前维护源码新增画布尺寸补偿及 `recover_postprocess`（尚未发布，共12工具）。小幅比例偏差先归一化到请求画布，再去补边并恢复原图精确宽高；已下载的v2失败图可沿原run_id纯本地恢复，无供应商请求。详见[尺寸恢复说明](docs/POSTPROCESS-RECOVERY.md)。下述v0.1.6发布记录及附件保持原样，该发布版没有此新入口。
+v0.1.7 已于 2026-10-28 19:11（Asia/Shanghai）正式发布，目标 `88ef28e76bdcd2cf7f3738e25e157ff7841a6cb3`。
+提供12工具/1资源/1提示：新增recover_postprocess，下载成功的v2图可沿原run_id纯本地恢复，保留receipt、raw、成功图和显式验收；画布比例偏差不超过1%时补偿并恢复原图精确宽高，明显偏差明确报错。
+默认保留代理并兼容NO_PROXY合法方括号IPv6；--proxy-mode direct显式关闭代理而保留CA环境及TLS校验，不改全局环境，不自动降级直连。
+本地256通过/1项平台跳过，格式/lint/mypy/秘密检查、依赖审计及Windows/Linux PR、合入、标签CI通过。v0.1.6→v0.1.7目标→v0.1.6隔离旧任务保留验证通过，.env字节/ACL、索引、工作区和成功产物保留，pending receipt恢复不重复提交。
+四个下载附件与GitHub摘要、SHA256SUMS及SOURCE_COMMIT一致；源码锁定无开发依赖安装、wheel锁定依赖安装、stdio及两种安装后的尺寸恢复/保留7图/代理兼容检查通过。安装验证的包源下载使用现有代理、GitHub读取按测试子进程选路，不修改用户/Host网络配置。
+真实DSH Desktop 0.2.1-rc.2宿主派生初始化探针：旧安装版复现，修复源码environment/direct通过；无供应商请求，不代表完整Host收费业务验收。原安装/任务未更新，实际恢复须操作者升级并重启当前连接。
+新本地恢复标记不承诺旧版本执行；不混用新旧服务执行同一工作区。密钥、原任务和7张业务成功图未修改，未触发真实收费请求。旧标签及附件不变；标签内文档是候选快照，实际交付说明以main在线手册为准。
 
-[正式发布v0.1.6](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.6)，2026-10-28 14:40（Asia/Shanghai），目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。
-新增逐图预检与显式分析恢复，共11工具。220通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过；附件、源码/wheel安装、旧任务升级回滚及安装后保留7图的恢复准备检查通过，无真实收费请求。
-详细证据见[发布记录](docs/releases/v0.1.6.md)。
+[实际发布记录](docs/releases/v0.1.7.md)。
 
 ## 任务级工作区
 
-维护源码另增代理兼容（未发布）：默认 `--proxy-mode environment`，保留HTTP/HTTPS/ALL代理与NO_PROXY绕过规则，在本客户端兼容合法的方括号IPv6条目，不修改进程或用户环境。仅需直连时由操作者显式加 `--proxy-mode direct`，忽略代理但继续使用CA环境并校验证书；不自动降级直连。规则见[网络兼容说明](docs/NETWORK-COMPATIBILITY.md)。
+v0.1.7新增代理兼容：默认 `--proxy-mode environment`，保留HTTP/HTTPS/ALL代理与NO_PROXY绕过规则，在本客户端兼容合法的方括号IPv6条目，不修改进程或用户环境。仅需直连时由操作者显式加 `--proxy-mode direct`，忽略代理但继续使用CA环境并校验证书；不自动降级直连。规则见[网络兼容说明](docs/NETWORK-COMPATIBILITY.md)。
 
 消费端 Agent 从[使用手册](docs/guidebook-of-ecommerce-image-replicator-mcp.md)开始，按“阶段→诊断→修改位置→恢复入口”处理问题。可复制入口在[output-docs](output-docs/AGENTS.md)：AGENTS.md / CLAUDE.md / CONVENTIONS.md 均相对链接到随包交付的 docs 手册，复制时保留该目录。
 
@@ -31,7 +35,7 @@ v0.1.6新增 `preflight_run` 和 `prepare_analysis_recovery`（v0.1.5没有）�
 ## 安装与使用
 
 Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\ecommerce-image-replicator-mcp`。
-从本仓库取得v0.1.6标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
+从本仓库取得v0.1.7标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
@@ -44,11 +48,11 @@ input-contract的execution_limit_policy为opt-in-v1时，batch_images、request_
 供应商上限、凭据、费用授权及其它运行边界仍生效。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
-MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v016)。
+MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v017)。
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
-- [发布记录](docs/releases/v0.1.6.md)：目标、CI、附件摘要及安装验证。
-- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.5升级v0.1.6及旧任务回滚，保留密钥、原工作区模式、显式限制和状态目录。
+- [发布记录](docs/releases/v0.1.7.md)：目标、CI、附件摘要及安装验证。
+- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.6升级v0.1.7及旧任务回滚，保留密钥、原工作区模式、显式限制和状态目录。
 - [保留验证](docs/UPGRADE-PRESERVATION.md)：Windows隔离验证v0.1.1→v0.1.2→v0.1.1，原文件内容/ACL及任务记录保留，未重复提交。
 - [工作流契约](docs/WORKFLOW.md)与[复刻契约](docs/DESIGN-V2.md)：输入及验收边界。
 - [验证记录](docs/VALIDATION.md)与[开发交接](docs/HANDOFF.md)：验证范围及历史决策。
@@ -62,7 +66,7 @@ uv run --no-sync python scripts/check.py
 if ($LASTEXITCODE -ne 0) { throw '本地质量检查失败' }
 ```
 
-SDK锁定MCP Python 2.3.0，协议测试为2026-07-28 discover流程。实际Host产品与旧协议兼容尚未验证。
+SDK锁定MCP Python 2.3.0，协议测试为2026-07-28 discover流程。已验证DSH Desktop 0.2.1-rc.2宿主派生的初始化；完整Host业务与旧协议兼容另计。
 v0.1.2已修复旧v0.1.1的serverInfo展示版本问题，旧发布附件保持不变；旧运行目录ACL仍不自动修复。
 
 Host模板见 [docs/hosts](docs/hosts)，包含Cherry Studio、Codex、Claude Code、Claude-3p及DSH。

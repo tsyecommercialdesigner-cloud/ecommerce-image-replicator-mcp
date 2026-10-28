@@ -1,3 +1,15 @@
+# v0.1.7 实际交付
+
+v0.1.7 已于 2026-10-28 19:11（Asia/Shanghai）正式发布，目标 `88ef28e76bdcd2cf7f3738e25e157ff7841a6cb3`。
+提供12工具/1资源/1提示：新增recover_postprocess，下载成功的v2图可沿原run_id纯本地恢复，保留receipt、raw、成功图和显式验收；画布比例偏差不超过1%时补偿并恢复原图精确宽高，明显偏差明确报错。
+默认保留代理并兼容NO_PROXY合法方括号IPv6；--proxy-mode direct显式关闭代理而保留CA环境及TLS校验，不改全局环境，不自动降级直连。
+本地256通过/1项平台跳过，格式/lint/mypy/秘密检查、依赖审计及Windows/Linux PR、合入、标签CI通过。v0.1.6→v0.1.7目标→v0.1.6隔离旧任务保留验证通过，.env字节/ACL、索引、工作区和成功产物保留，pending receipt恢复不重复提交。
+四个下载附件与GitHub摘要、SHA256SUMS及SOURCE_COMMIT一致；源码锁定无开发依赖安装、wheel锁定依赖安装、stdio及两种安装后的尺寸恢复/保留7图/代理兼容检查通过。安装验证的包源下载使用现有代理、GitHub读取按测试子进程选路，不修改用户/Host网络配置。
+真实DSH Desktop 0.2.1-rc.2宿主派生初始化探针：旧安装版复现，修复源码environment/direct通过；无供应商请求，不代表完整Host收费业务验收。原安装/任务未更新，实际恢复须操作者升级并重启当前连接。
+新本地恢复标记不承诺旧版本执行；不混用新旧服务执行同一工作区。密钥、原任务和7张业务成功图未修改，未触发真实收费请求。旧标签及附件不变；标签内文档是候选快照，实际交付说明以main在线手册为准。
+
+[实际发布记录](releases/v0.1.7.md)。以下保留历史阶段记录。
+
 # v0.1.6后：环境代理兼容与显式直连（未发布）
 
 默认proxy_mode=environment，按标准库/HTTPX既有规则保留环境与系统代理回退、域名/端口/IPv4/IPv6/星号绕过；额外接受合法独立方括号IPv6，使用公开transport/mounts，不改os.environ或用户/Host配置，不吞非法配置、不自动直连。--proxy-mode direct显式关闭本客户端代理选择，仍保留CA环境与TLS验证；资源显示模式和httpx-bracketed-ipv6-v1能力。Key读取优先级和run绑定不变，.env不导入NO_PROXY。

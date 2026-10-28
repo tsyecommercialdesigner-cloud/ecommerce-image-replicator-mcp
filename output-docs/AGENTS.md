@@ -3,7 +3,7 @@
 本文件写给调用 `ecommerce-image-replicator` MCP 的消费端 Agent，不是服务端开发约定。
 **开始工作前完整阅读[消费端使用手册](./docs/guidebook-of-ecommerce-image-replicator-mcp.md)**，尤其是“错误在哪一阶段，就改对应层”和“只恢复分析/文案失败的图片”。
 
-本文和手册适用于已发布v0.1.6的显式分析恢复契约，发布目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。已发布v0.1.5没有新增的两个工具；以当前连接的工具schema和资源策略为准。能力缺失请报告版本差异，不自行改安装/Host配置或反复调用不存在的工具。
+本文和手册适用于已发布v0.1.7，发布目标 `88ef28e76bdcd2cf7f3738e25e157ff7841a6cb3`，共12工具。v0.1.6没有recover_postprocess及代理兼容；v0.1.5还没有分析恢复/预检工具；以当前连接的工具schema和资源策略为准。能力缺失请报告版本差异，不自行改安装/Host配置或反复调用不存在的工具。
 
 ## 开始前与费用
 
@@ -27,13 +27,13 @@
 - prepare_revision只用于已有下载并后处理成图的视觉修改；不是分析失败的恢复入口。不能把所有blocked都叫终态，也不能靠反复execute重置分析额度。
 - scheduled不是完成。有限间隔查询仍不推进时报告状态和脱敏诊断，不忙循环，不因服务进程多就判断根因或杀进程。
 
-- 尺寸后处理失败且已downloaded时，先核对recover_postprocess及downloaded-local-v1能力；用原run_id和明确image_ids纯本地恢复，不调用execute收尾、不重新绘图、不从日志URL下载raw交成品。新能力未发布，正式v0.1.6不具备。小幅比例偏差由MCP恢复原图完整宽高；明显偏差、文件缺失或哈希变化按手册诊断处理。
+- 尺寸后处理失败且已downloaded时，先核对recover_postprocess及downloaded-local-v1能力；用原run_id和明确image_ids纯本地恢复，不调用execute收尾、不重新绘图、不从日志URL下载raw交成品。新能力已随v0.1.7发布，正式v0.1.6不具备。小幅比例偏差由MCP恢复原图完整宽高；明显偏差、文件缺失或哈希变化按手册诊断处理。
 
 ## 隐私、恢复与交付
 
 - 密钥由MCP读取安装根.env并按字段回退环境变量；业务目录不另存密钥，不把密钥、代理认证URL或原始响应放进brief/共享日志。不伪造缺失stderr，不把“没有记录”当成反证。
 - 不编辑journal/registry/checkpoint，不递归查找私有Host配置，不擅自改代理/凭据或直接调用API绕过工具拒绝。
-- 正式v0.1.6的HTTPX不兼容独立[::1]；维护源码（未发布）提供httpx-bracketed-ipv6-v1，默认保留代理并在客户端兼容合法IPv6绕过规则，不改全局环境。显式直连由操作者设置--proxy-mode direct并重启复核；仍验证证书。不删除所有方括号条目，不把NO_PROXY写进仅读取Key的.env期待生效。
+- 正式v0.1.6的HTTPX不兼容独立[::1]；v0.1.7提供httpx-bracketed-ipv6-v1，默认保留代理并在客户端兼容合法IPv6绕过规则，不改全局环境。显式直连由操作者设置--proxy-mode direct并重启复核；仍验证证书。不删除所有方括号条目，不把NO_PROXY写进仅读取Key的.env期待生效。
 - 保留安装索引、业务工作区完整.replicator、原输入、receipt/checkpoint和成功产物。按image_id汇总原任务与恢复任务，区分生成成功、视觉验收与缺口，不覆盖原成功文件或改标旧失败图。
 
 ## 复制到消费项目
