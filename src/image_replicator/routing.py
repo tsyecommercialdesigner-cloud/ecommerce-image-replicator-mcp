@@ -116,6 +116,21 @@ class WorkspaceRouter:
 
     def expose(self, service, result: dict) -> dict:
         thread_id = result["thread_id"]
+        result = dict(result)
+        if result.get("parent_thread_id"):
+            result["parent_run_id"] = self.bind(service, result["parent_thread_id"])
+        if "jobs" in result:
+            result["jobs"] = [
+                {
+                    **job,
+                    **(
+                        {"recovery_run_id": self.bind(service, job["recovery_thread_id"])}
+                        if job.get("recovery_thread_id")
+                        else {}
+                    ),
+                }
+                for job in result["jobs"]
+            ]
         return {
             **result,
             "run_id": self.bind(service, thread_id),

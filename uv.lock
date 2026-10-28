@@ -480,7 +480,7 @@ wheels = [
 
 [[package]]
 name = "ecommerce-image-replicator-mcp"
-version = "0.1.5"
+version = "0.1.6"
 source = { editable = "." }
 dependencies = [
     { name = "httpx" },

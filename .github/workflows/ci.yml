@@ -28,11 +28,11 @@ jobs:
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          git fetch origin refs/tags/v0.1.1:refs/tags/v0.1.1 refs/tags/v0.1.2:refs/tags/v0.1.2 refs/tags/v0.1.3:refs/tags/v0.1.3 refs/tags/v0.1.4:refs/tags/v0.1.4
+          git fetch origin refs/tags/v0.1.1:refs/tags/v0.1.1 refs/tags/v0.1.2:refs/tags/v0.1.2 refs/tags/v0.1.3:refs/tags/v0.1.3 refs/tags/v0.1.4:refs/tags/v0.1.4 refs/tags/v0.1.5:refs/tags/v0.1.5
           if ($LASTEXITCODE -ne 0) { throw 'Release tag fetch failed' }
           uv run --no-sync python scripts/verify_upgrade.py
           if ($LASTEXITCODE -ne 0) { throw 'Upgrade preservation failed' }
-          uv run --no-sync python scripts/verify_upgrade.py --candidate HEAD --baseline v0.1.4
+          uv run --no-sync python scripts/verify_upgrade.py --candidate HEAD --baseline v0.1.5
           if ($LASTEXITCODE -ne 0) { throw 'Candidate preservation failed' }
       - run: uv run --no-sync pip-audit
       - run: uv build --no-sources

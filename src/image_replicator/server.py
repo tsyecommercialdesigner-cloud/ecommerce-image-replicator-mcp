@@ -15,13 +15,22 @@ from typing import Any
 import portalocker
 from mcp.server.mcpserver import MCPServer
 from mcp.server.mcpserver.exceptions import ToolError
+from mcp.types import CallToolResult, TextContent
 
 from .config import Settings, read_keys
 from .design import edit_boundary, effective_delta, resolve_design, review_status
 from .inputs import discover, freeze, inspect_images, safe_path
-from .models import REFERENCE_POLICY, Delta, ProductContext, RevisionUpdate, RunOptions
+from .models import (
+    REFERENCE_POLICY,
+    AnalysisRecoveryUpdate,
+    Delta,
+    ProductContext,
+    RevisionUpdate,
+    RunOptions,
+)
 from .models import ReferenceReviewReport as ReviewReport
 from .provider import Provider, ProviderFailure, SubmissionUnknown
+from .recovery import RecoveryRejected, preflight, prepare_recovery
 from .routing import WorkspaceRouter
 from .runtime import StartupError, open_journal
 from .storage import canonical, digest
@@ -41,6 +50,13 @@ ordered array, one item per reference; {} retains the base prompt. Inspect input
 prepare_run. execute_run authorizes paid LLM and image requests for the frozen manifest, then
 returns immediately; poll get_run. Resume uses the same run_id (legacy fixed mode: thread_id)
 and retained provider task_ids. prepare_revision uses parent_run_id in task mode.
+Use preflight_run for per-image analysis/copy diagnostics without supplier calls.
+prepare_analysis_recovery prepares ONLY selected blocked pre-image jobs, with corrected complete
+deltas and/or explicit failed text/visual retry scopes. It returns a linked recovery run_id;
+it never executes. Keep the original parent and successful artifacts. Reuse request_id for
+idempotent preparation; follow recovery_run_id afterward. prepare_revision requires an artifact.
+LLM analysis can be billable even when no image task was submitted. Valid cached result wins
+over a historical error marker. Never inspect private Host configs or edit journal records.
 Never resubmit unknown image outcomes; reconcile with a known supplier task_id first.
 New runs preserve reference composition, object inventory and relationships, including props,
 stains, water, hands, actions, counts and control subjects. Deltas may adapt product copy,
@@ -111,6 +127,10 @@ class Service:
                     if record and record["attempts"]
                     else None,
                     **(self.journal.get("job_result", result_key(thread_id, index)) or {}),
+                    **(
+                        self.journal.get("analysis_recovery_link", result_key(thread_id, index))
+                        or {}
+                    ),
                 }
             )
         if (
@@ -128,6 +148,7 @@ class Service:
                 and state["status"] == "accepted"
             ),
             "parent_thread_id": manifest.get("parent_thread_id"),
+            "analysis_recovery": manifest.get("analysis_recovery"),
             "options": manifest["options"],
             **state,
             "jobs": jobs,
@@ -138,6 +159,26 @@ class Service:
             if job["image_id"] == image_id:
                 return index
         raise ValueError("Image ID is not in the frozen run")
+
+    def preflight(self, thread_id: str, image_ids: list[str] | None = None):
+        if any(not task.done() for task in self.tasks.values()):
+            raise RecoveryRejected("Execution is active; wait before local preflight or recovery")
+        with portalocker.Lock(
+            str(safe_path(self.settings.workspace, ".replicator/execution.lock", exists=False)),
+            timeout=0,
+        ):
+            return preflight(self.settings, self.journal, self.manifest(thread_id), image_ids)
+
+    def recover_analysis(
+        self, thread_id: str, updates: list[AnalysisRecoveryUpdate], request_id: str
+    ):
+        if any(not task.done() for task in self.tasks.values()):
+            raise RecoveryRejected("Execution is active; wait before local preflight or recovery")
+        with portalocker.Lock(
+            str(safe_path(self.settings.workspace, ".replicator/execution.lock", exists=False)),
+            timeout=0,
+        ):
+            return prepare_recovery(self, self.manifest(thread_id), updates, request_id)
 
     def design(self, thread_id: str, image_id: str):
         manifest = self.manifest(thread_id)
@@ -456,6 +497,8 @@ def create_server(
                 "delta_item_schema": Delta.model_json_schema(),
                 "product_context_schema": ProductContext.model_json_schema(),
                 "review_schema": ReviewReport.model_json_schema(),
+                "analysis_recovery_update_schema": AnalysisRecoveryUpdate.model_json_schema(),
+                "analysis_recovery_policy": "explicit-pre-image-child-v1",
                 "alignment_policy": REFERENCE_POLICY,
                 "edit_boundary": edit_boundary(),
                 "generation_image_roles": ["original_reference", "user_product_photos"],
@@ -543,6 +586,71 @@ def create_server(
         except Exception as exc:
             raise ToolError(
                 f"Task import failed ({type(exc).__name__}); preserve original workspace"
+            ) from None
+
+    @server.tool(structured_output=True)
+    def preflight_run(
+        image_ids: list[str] | None = None, thread_id: str | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Inspect per-image cached analysis/copy; local preparation only, no provider calls."""
+        try:
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            return router.expose(service, service.preflight(local_id, image_ids))
+        except RecoveryRejected as exc:
+            raise ToolError(str(exc)) from None
+        except Exception as exc:
+            raise ToolError(
+                f"Preflight rejected ({type(exc).__name__}); "
+                "check binding or wait for active execution"
+            ) from None
+
+    @server.tool(structured_output=True)
+    def prepare_analysis_recovery(
+        updates: list[AnalysisRecoveryUpdate],
+        request_id: str,
+        thread_id: str | None = None,
+        run_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Prepare linked recovery for selected blocked jobs with no image receipt; never executes.
+
+        delta is a complete per-image replacement. retry_kinds opens a fresh finite analysis
+        budget only for the selected failed kinds. Use stable request_id on retries.
+        """
+        try:
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            report = router.expose(service, service.recover_analysis(local_id, updates, request_id))
+            if report["status"] == "preflight_failed":
+                safe = {key: value for key, value in report.items() if key != "preflight"}
+                allowed = {
+                    "image_id",
+                    "index",
+                    "status",
+                    "phase",
+                    "error_code",
+                    "copy_status",
+                    "replacement_indexes",
+                    "analysis",
+                    "recovery_action",
+                }
+                safe["preflight"] = {
+                    "jobs": [
+                        {key: value for key, value in row.items() if key in allowed}
+                        for row in report["preflight"]["jobs"]
+                    ]
+                }
+                error_result: Any = CallToolResult(
+                    content=[TextContent(type="text", text=canonical(safe))],
+                    structured_content=safe,
+                    is_error=True,
+                )
+                return error_result
+            return report
+        except RecoveryRejected as exc:
+            raise ToolError(str(exc)) from None
+        except Exception as exc:
+            raise ToolError(
+                f"Recovery preparation rejected ({type(exc).__name__}); "
+                "preserve original run and inspect preflight"
             ) from None
 
     @server.tool(structured_output=True)
