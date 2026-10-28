@@ -1,6 +1,6 @@
 # CONVENTIONS.md — 电商竞品图复刻 MCP 使用约定
 
-本文件写给调用 `ecommerce-image-replicator` MCP 的消费方 Agent，适用已发布v0.1.4的任务级工作区及下述执行限制策略。发布目标 `a77ed089de3031cbefdbd235608b6631a95d3e40`，安装及升级见在线手册。它不要求你开发 MCP 源码，也不要求消费项目采用 MCP 仓库的开发、测试或发布流程。
+本文件写给调用 `ecommerce-image-replicator` MCP 的消费方 Agent，适用已发布v0.1.5的任务级工作区及下述执行限制策略。发布目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`，安装及升级见在线手册。它不要求你开发 MCP 源码，也不要求消费项目采用 MCP 仓库的开发、测试或发布流程。
 
 ## 接入与契约优先
 
@@ -184,15 +184,15 @@ MCP 安装根保存依赖、私有凭据及默认任务索引；业务工作区�
 ## Windows并发准备图片与旧任务恢复
 
 v0.1.4修复了v0.1.3并发创建输出目录时，等价路径扩展前缀差异引发的包含检查误拒绝。这不是预算缺失，不需要消费Agent翻源码、改Host私有配置或关闭路径校验。
-旧服务遇到此问题时保留日志、原run_id和成功产物，请操作者升级到v0.1.4并重启当前MCP连接。复核serverInfo版本及workspace_mode/allowed_roots/state_directory后，沿原run_id先get_run检查逐图状态，再恢复原任务；固定模式继续原thread_id。unknown仍须先核查原供应商task_id，不自动重提收费请求。
+旧服务遇到此问题时保留日志、原run_id和成功产物，请操作者升级到v0.1.5并重启当前MCP连接。复核serverInfo版本及workspace_mode/allowed_roots/state_directory后，沿原run_id先get_run检查逐图状态，再恢复原任务；固定模式继续原thread_id。unknown仍须先核查原供应商task_id，不自动重提收费请求。
 不要重新prepare_run、改写任务索引或删除已有产物。真实越界、junction、设备路径、持续权限拒绝仍是错误，须报告具体路径与脱敏诊断交给操作者处理，不绕过检查。已发布旧标签和附件保持不变。
 
 ## scheduled后状态不推进
 
 execute_run返回scheduled只表示调度受理，不代表后台已启动或供应商已接单。按有限间隔查询；若持续prepared且所有job都是not_submitted，保留原run_id、当前连接工作区绑定及状态，向操作者报告并获取脱敏stderr，不忙循环execute。
-v0.1.4存在Provider初始化在异常保护之外的缺口：初始化抛错可能没有running/blocked记录，并遗留任务注册。维护源码已修复但尚未发布，不能把新行为当成已安装v0.1.4的能力。多个服务进程或只有manifest不足以确认具体触发原因，也不能据此认定任务日志已改存位置。
+v0.1.5已修复v0.1.4中Provider初始化失败缺少running/blocked记录和任务注册残留的缺口。新版本初始化失败返回blocked、phase=provider_initialization及脱敏异常类型；清理错误不覆盖已保存结果。多个服务进程或只有manifest不足以确认具体触发原因，也不能据此认定任务日志已改存位置。
 不要翻源码、递归寻找Host配置、擅自修改代理/密钥、删除数据库、重建prepare_run或终止所有服务进程。仅收集当前连接的状态和脱敏错误类型/堆栈，交给操作者处理；不得共享原始凭据、带认证URL或代理密码。
-操作者修正已确认问题或更新实际MCP并重启当前连接后，先用原run_id get_run核对，再按已有授权恢复；固定模式用原thread_id。保留成功产物和receipt；unknown先核查原task_id，不自动重提收费请求。修复版本若返回blocked/error/phase，以实际返回的失败阶段和异常类型定位，不猜测环境配置。
+旧版需由操作者升级实际MCP至v0.1.5并重启当前连接；新版需先修正已确认的环境问题。复核serverInfo版本及原workspace_mode/allowed_roots/state_directory，再用原run_id get_run核对，按已有授权恢复；固定模式用原thread_id。保留成功产物和receipt；unknown先核查原task_id，不自动重提收费请求。以实际返回的失败阶段和异常类型定位，不猜测代理或凭据设置。
 
 ## 凭据、交付和查阅
 

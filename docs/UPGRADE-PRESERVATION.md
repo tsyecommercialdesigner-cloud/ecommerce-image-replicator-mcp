@@ -1,5 +1,12 @@
 # 升级与回滚保留验证
 
+## v0.1.4 → v0.1.5 → v0.1.4
+
+2026-10-28，Windows本地候选及PR、合入、标签CI通过。基线 `a77ed089de3031cbefdbd235608b6631a95d3e40`，发布目标 `b1c1bd1bcdba05ec50ec5e33a83797c90ec5751f`。
+测试.env字节/ACL、工作区、旧任务索引、receipt/checkpoint与成功产物保留。已完成任务可查询，pending receipt沿原身份恢复；三阶段假供应商提交总数均为2，没有重复提交或真实收费请求。
+临时安装已清理。运行 `uv run --no-sync python scripts/verify_upgrade.py --candidate v0.1.5 --baseline v0.1.4` 复现，先获取v0.1.1至v0.1.5标签。
+源码/wheel隔离安装后也验证初始化失败可见blocked/phase、同一run_id可以恢复，详见[发布记录](releases/v0.1.5.md)。不覆盖实际消费Host或任意未来版本降级。
+
 ## v0.1.3 → v0.1.4 → v0.1.3
 
 2026-10-28，Windows本地候选及PR、合入、标签CI均通过。v0.1.3基线为
