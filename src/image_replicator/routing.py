@@ -8,7 +8,7 @@ from pathlib import Path
 from threading import RLock
 
 from .config import Settings
-from .inputs import safe_path
+from .inputs import comparable_path, safe_path
 from .runtime import StartupError, open_journal
 from .storage import Journal, canonical, digest
 
@@ -50,7 +50,9 @@ class WorkspaceRouter:
 
     def checked_root(self, value: Path) -> Path:
         root = self.canonical_root(value)
-        if self.allowed and not any(root.is_relative_to(parent) for parent in self.allowed):
+        if self.allowed and not any(
+            comparable_path(root).is_relative_to(comparable_path(parent)) for parent in self.allowed
+        ):
             raise ValueError("Workspace is outside configured allowed roots")
         return root
 

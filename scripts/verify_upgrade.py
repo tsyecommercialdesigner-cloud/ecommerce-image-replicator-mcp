@@ -13,6 +13,7 @@ ROOT = Path(__file__).resolve().parents[1]
 TARGETS = {
     "v0.1.1": "c85f396c559411a68bdd5a2cba4bbbe858ab3245",
     "v0.1.2": "036ef5e3246ce32f23ddd8138284fc1d18f357ed",
+    "v0.1.3": "f437164d10a8a7dd7fd21bd85ee1deccf7b4533e",
 }
 
 
@@ -44,6 +45,7 @@ def snapshot(paths):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate", help="Git ref to verify against v0.1.2, then roll back")
+    parser.add_argument("--baseline", choices=TARGETS, default="v0.1.2")
     args = parser.parse_args()
     reports = ROOT / ".cache/validation"
     reports.mkdir(parents=True, exist_ok=True)
@@ -94,7 +96,7 @@ def main():
         if args.candidate:
             candidate = run(["git", "rev-parse", f"{args.candidate}^{{commit}}"], install)
             report["candidate"] = candidate
-            phases = (("seed", "v0.1.2"), ("upgrade", candidate), ("rollback", "v0.1.2"))
+            phases = (("seed", args.baseline), ("upgrade", candidate), ("rollback", args.baseline))
         for phase, tag in phases:
             before = snapshot(retained)
             assert run(["git", "rev-parse", f"{tag}^{{commit}}"], install) == TARGETS.get(tag, tag)

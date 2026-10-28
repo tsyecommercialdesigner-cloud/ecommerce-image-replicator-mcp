@@ -50,7 +50,7 @@ async def check(project: Path, workspace: Path | None):
                 raise RuntimeError("Installed resource/prompt discovery mismatch")
             contract = await client.read_resource("replicator://input-contract")
             data = json.loads(contract.contents[0].text)
-            if version("ecommerce-image-replicator-mcp") == "0.1.3":
+            if version("ecommerce-image-replicator-mcp") in {"0.1.3", "0.1.4"}:
                 if data.get("operational_limit_policy") != "opt-in-v1":
                     raise RuntimeError("Installed operational limit policy mismatch")
                 for key in (
