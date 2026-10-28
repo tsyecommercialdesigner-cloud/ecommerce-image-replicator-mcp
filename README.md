@@ -6,9 +6,9 @@
 
 ## 发布状态
 
-[正式发布v0.1.3](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.3)，2026-10-28 12:01（Asia/Shanghai），目标 `f437164d10a8a7dd7fd21bd85ee1deccf7b4533e`。
-本地172通过/1项平台跳过，Windows/Linux PR、合入与标签CI通过；安装/摘要和升级保留验证通过。
-详细证据见[发布记录](docs/releases/v0.1.3.md)。
+[正式发布v0.1.4](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.4)，2026-10-28 12:31（Asia/Shanghai），目标 `a77ed089de3031cbefdbd235608b6631a95d3e40`。
+修复Windows并发准备图片的路径包含检查误拒绝；23项定向回归、完整本地195通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过。附件/安装和v0.1.3升级回滚保留验证通过。
+详细证据见[发布记录](docs/releases/v0.1.4.md)。
 
 ## 任务级工作区
 
@@ -23,7 +23,7 @@
 ## 安装与使用
 
 Windows建议PowerShell 7、Git、Python 3.12和uv 0.12.23，安装于 `D:\MCP\ecommerce-image-replicator-mcp`。
-从本仓库取得v0.1.3标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
+从本仓库取得v0.1.4标签，按[手册](MANUAL.md#2-项目初始化)核对完整SHA并执行 `uv sync --locked --no-dev`。
 凭据固定读取安装根 `.env`，逐字段回退至进程及Windows用户环境；业务工作区不参与凭据查找。
 密钥为 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 已有用户级密钥时，不要创建含空密钥字段的 `.env`；空值会阻止环境变量回退。
@@ -36,11 +36,11 @@ input-contract的execution_limit_policy为opt-in-v1时，batch_images、request_
 供应商上限、凭据、费用授权及其它运行边界仍生效。
 
 业务目录包含 `references/<group>/`、`products/`、`brief/` 和可选 `prompts/`；产物在 `artifacts/`。
-MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v013)。
+MCP配置见 [.mcp.json.example](.mcp.json.example)，四类Host完整JSON/TOML/YAML配置及三类CLI×三种Shell流程见[MANUAL](MANUAL.md#4-客户端配置v014)。
 Agent先读服务资源和提示，无需强制配置配套Skill、AGENTS.md或CLAUDE.md。
 
-- [发布记录](docs/releases/v0.1.3.md)：目标、CI、附件摘要及安装验证。
-- [升级与回滚](MANUAL.md#5-启动排障与更新)：保留密钥、原工作区、预算和状态目录；回滚v0.1.1须恢复workspace/thread_id。
+- [发布记录](docs/releases/v0.1.4.md)：目标、CI、附件摘要及安装验证。
+- [升级与回滚](MANUAL.md#5-启动排障与更新)：v0.1.3升级v0.1.4及回滚，保留密钥、原工作区模式、显式限制和状态目录。
 - [保留验证](docs/UPGRADE-PRESERVATION.md)：Windows隔离验证v0.1.1→v0.1.2→v0.1.1，原文件内容/ACL及任务记录保留，未重复提交。
 - [工作流契约](docs/WORKFLOW.md)与[复刻契约](docs/DESIGN-V2.md)：输入及验收边界。
 - [验证记录](docs/VALIDATION.md)与[开发交接](docs/HANDOFF.md)：验证范围及历史决策。
@@ -65,4 +65,4 @@ v0.1.3发布包含三份消费端指南；旧v0.1.2服务需按升级流程更�
 v0.1.3另将输入/下载大小、下载域名名单、轮询/HTTP超时和新任务并发/修订额度改为默认不限制、显式设置才生效。
 业务文本长度上限已移除；完整检查清单与保留的校验见[运行限制审计](docs/OPERATIONAL-LIMITS.md)。旧任务已冻结额度继续有效。
 
-Windows并发准备图片仍有间歇性路径包含检查误拒绝的已知问题，可能返回partial/blocked；处理边界见[发布记录](docs/releases/v0.1.3.md)。
+v0.1.4已修复Windows并发准备图片的路径包含检查误拒绝。升级并重启当前MCP后，沿原run_id查询与恢复，不重建任务；unknown先核查原供应商task_id。真实越界、junction或权限错误仍拒绝，见[根因与恢复边界](docs/WINDOWS-PATH-FIX.md)。
