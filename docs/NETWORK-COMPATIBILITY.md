@@ -1,6 +1,6 @@
 # 环境代理与IPv6绕过兼容
 
-维护源码新增，未发布；v0.1.6发布标签/附件不变。默认无需改现有Host参数。
+v0.1.7已发布；v0.1.6发布标签/附件不变。默认无需改现有Host参数。
 
 ## 模式与边界
 
@@ -33,7 +33,7 @@
 
 官方依据：[HTTPX环境变量](https://www.python-httpx.org/environment_variables/)、[公开传输与路由接口](https://www.python-httpx.org/advanced/transports/)。本地回归使用真实HTTPX构造和假transport请求验证，不访问供应商或真实代理；具体消费Host联调另计。
 
-2026-10-28最终串行质量门禁 `uv run --no-sync python scripts/check.py`：256通过、1项平台跳过，格式/lint/mypy/秘密检查通过；包含前一轮尺寸恢复回归与新增13项代理/直连测试。真实SDK stdio确认默认environment和显式direct资源字段。独立离线探针复现原HTTPX的 `Invalid port: ':1]'`，兼容客户端构造/关闭成功，无HTTP请求。证据：`.cache/validation/proxy-compat-quality.log`、`proxy-compat-probe.json`。未修改成员数据、Host/用户环境、密钥或代理配置，未提交、推送或发布。
+2026-10-28最终串行质量门禁 `uv run --no-sync python scripts/check.py`：256通过、1项平台跳过，格式/lint/mypy/秘密检查通过；包含前一轮尺寸恢复回归与新增13项代理/直连测试。真实SDK stdio确认默认environment和显式direct资源字段。独立离线探针复现原HTTPX的 `Invalid port: ':1]'`，兼容客户端构造/关闭成功，无HTTP请求。证据：`.cache/validation/proxy-compat-quality.log`、`proxy-compat-probe.json`。未修改成员数据、Host/用户环境、密钥或代理配置，本段为发布前本地验证记录；实际发布见对应发布记录。
 
 ## 真实DSH宿主初始化核验
 
@@ -42,3 +42,5 @@
 三组均继承宿主实际环境：HTTP/HTTPS代理存在，NO_PROXY含裸::1及[::1]。加载D盘现有v0.1.6安装源码时Provider初始化复现InvalidURL；加载本仓库修复源码时，environment和direct两模式均成功创建并关闭Provider。重复执行结果一致，代理/CA环境前后未变。用户级NO_PROXY不含[::1]，宿主及其此次实际子进程含该条目，支持本现场的宿主注入判断，不推广到所有Host版本/profile。
 
 测试使用假凭据且不调用read_keys，不发送HTTP请求；审计钩子禁止诊断阶段DNS/连接，三组均无网络尝试。只覆盖真实宿主下的客户端初始化，不代表实际MCP工具链、供应商网络或绘图验收。既有DSH/MCP进程、工作区、run_id和成功产物保留；没有安装或切换修复版，现有正式v0.1.6不会自动获得补丁。证据 `.cache/validation/dsh-live-proxy/results.json` 及同目录初始化探针；诊断子进程与调试连接均已退出。
+
+正式发布结果见[v0.1.7](releases/v0.1.7.md)，原v0.1.6标签及附件不变。

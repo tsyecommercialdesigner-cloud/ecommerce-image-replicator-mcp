@@ -2,11 +2,11 @@
 
 本文写给调用 MCP 的 Agent，不是 MCP 开发约定。先完整阅读，再准备输入或执行；工具 schema 和当前连接返回的契约优先于示例。不要声称完成未执行的检查。
 
-本手册适用于已发布v0.1.6新增的 `preflight_run`、`prepare_analysis_recovery`；发布目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`，安装和升级以在线MANUAL为准。已发布 v0.1.5 及更早版本没有这两个工具；不能只复制手册就改变服务能力。发现工具缺失时报告版本差异，请操作者更新实际服务并重启当前连接，不自行安装开发版、改 Host 配置或杜撰调用。
+本手册适用于已发布v0.1.7（12工具）；发布目标 `88ef28e76bdcd2cf7f3738e25e157ff7841a6cb3`，包含v0.1.6的 `preflight_run`、`prepare_analysis_recovery`，安装和升级以在线MANUAL为准。已发布 v0.1.5 及更早版本没有这两个工具；不能只复制手册就改变服务能力。发现工具缺失时报告版本差异，请操作者更新实际服务并重启当前连接，不自行安装开发版、改 Host 配置或杜撰调用。
 
 ## 1. 接手时先做什么
 
-维护源码还提供 `canvas_compensation_policy=canvas-normalize-v1`、`postprocess_recovery_policy=downloaded-local-v1` 和 `recover_postprocess`（共12工具，未发布；正式v0.1.6没有）。先核对当前连接能力，缺失时交操作者升级和重启，不自行绕过校验。
+v0.1.7还提供 `canvas_compensation_policy=canvas-normalize-v1`、`postprocess_recovery_policy=downloaded-local-v1` 和 `recover_postprocess`（共12工具，已发布；正式v0.1.6没有）。先核对当前连接能力，缺失时交操作者升级和重启，不自行绕过校验。
 
 1. 发现 Host 实际暴露的工具名称及参数。名称可能有 Host 前缀，不猜前缀。
 2. 读取 Resource `replicator://input-contract` 和 Prompt `prepare_inputs`。后者不是 Tool。Host 不桥接资源/提示时，通过本手册及实际工具 schema 核对能力，不为读不到资源而调用收费工具试连接。
@@ -198,7 +198,7 @@ corrected_rules须来自该图transcription和已有产品事实；复制原delt
 
 ### 先区分尺寸后处理恢复和重新绘图
 
-维护源码（未发布）对所有模型按实际尺寸触发补偿，不改变模型路由。尺寸相同走原路径；宽高比相对偏差不超过1%时，Lanczos归一化到请求画布，再按保存的crop去除补边并还原原图完整宽高。例如 `1206×1304 → 800×864 → 去补边 → 790×857`，不是只按790宽缩成790×854。比例偏差计算为两方向比例中的较大值除以较小值减1；超过1%报 `provider_canvas_aspect_mismatch`。补偿只修复尺寸，不证明构图、文字或清晰度合格。
+v0.1.7对所有模型按实际尺寸触发补偿，不改变模型路由。尺寸相同走原路径；宽高比相对偏差不超过1%时，Lanczos归一化到请求画布，再按保存的crop去除补边并还原原图完整宽高。例如 `1206×1304 → 800×864 → 去补边 → 790×857`，不是只按790宽缩成790×854。比例偏差计算为两方向比例中的较大值除以较小值减1；超过1%报 `provider_canvas_aspect_mismatch`。补偿只修复尺寸，不证明构图、文字或清晰度合格。
 
 已有v2任务若是downloaded但后处理失败，使用原run_id、get_run返回的明确image_id调用新工具：
 
@@ -226,7 +226,7 @@ corrected_rules须来自该图transcription和已有产品事实；复制原delt
 - 新策略opt-in-v1的null表示不限制，不是未配置。三项预算参数只在用户显式设置时生效；显式0不是无限。旧v0.1.2及更早仍有旧行为，报告版本差异，不扫描Host配置。
 - 默认不限额不取消供应商限制、有限自动重试、路径/哈希/权限检查和用户费用授权。分析失败六次已可能产生LLM费用，不能承诺“没有出图就免费”。
 - 正式v0.1.6及更早的HTTPX 0.28.1环境解析不兼容NO_PROXY中的独立 `[::1]`；手工配置可用 `localhost,127.0.0.1,::1`。但Host可能主动合并方括号写法，不能保证修改用户环境或重启就能解决，也不能把宿主注入误当成操作者写错。
-- 维护源码（未发布）提供 `no_proxy_compatibility=httpx-bracketed-ipv6-v1`；默认资源proxy_mode=environment，保留HTTP/HTTPS/ALL代理与绕过语义，在本客户端接受合法方括号IPv6（包括端口），不删除所有以 `[` 开头的条目、不改os.environ或用户/Host配置。非法代理仍失败，绝不自动直连。显式直连交操作者给当前服务加 `--proxy-mode direct`，重启后复核资源，仍保留CA环境及TLS验证；不把环境变量或认证URL值写进交接。项目.env只读Key，不加载NO_PROXY=*；Agent不擅自改服务源码或配置。
+- v0.1.7提供 `no_proxy_compatibility=httpx-bracketed-ipv6-v1`；默认资源proxy_mode=environment，保留HTTP/HTTPS/ALL代理与绕过语义，在本客户端接受合法方括号IPv6（包括端口），不删除所有以 `[` 开头的条目、不改os.environ或用户/Host配置。非法代理仍失败，绝不自动直连。显式直连交操作者给当前服务加 `--proxy-mode direct`，重启后复核资源，仍保留CA环境及TLS验证；不把环境变量或认证URL值写进交接。项目.env只读Key，不加载NO_PROXY=*；Agent不擅自改服务源码或配置。
 - 本机DSH Desktop 0.2.1-rc.2实际宿主派生子进程验证：继承同样含[::1]的环境，正式v0.1.6源码初始化失败，修复源码environment/direct均初始化成功。该证据只覆盖客户端初始化，无HTTP请求；不代表现有安装已更新或收费绘图已通过。保持原run_id，待操作者更新当前实际服务、重启并复核能力后，再按原授权恢复，不重新准备任务碰运气。
 - v0.1.5已修复Provider构造异常不落盘及清理注册残留。它让错误可见，不自动修正NO_PROXY。没有历史stderr不能伪造堆栈；日志未记录某异常也不能证明该异常没有发生。
 - 缺少可用诊断就报告准确的run_id、image_id、阶段、状态和异常类型，不根据进程数量判根因，不全盘找日志，不杀掉所有服务实例。
