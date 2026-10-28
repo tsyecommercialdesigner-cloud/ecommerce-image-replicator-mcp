@@ -66,3 +66,5 @@ v0.1.3另将输入/下载大小、下载域名名单、轮询/HTTP超时和新�
 业务文本长度上限已移除；完整检查清单与保留的校验见[运行限制审计](docs/OPERATIONAL-LIMITS.md)。旧任务已冻结额度继续有效。
 
 v0.1.4已修复Windows并发准备图片的路径包含检查误拒绝。升级并重启当前MCP后，沿原run_id查询与恢复，不重建任务；unknown先核查原供应商task_id。真实越界、junction或权限错误仍拒绝，见[根因与恢复边界](docs/WINDOWS-PATH-FIX.md)。
+
+v0.1.4另有后台Provider初始化异常未落盘、任务注册未清理的缺口，可能表现为scheduled后始终prepared。维护源码已补齐异常处理与回归，尚未发布；具体消费端触发原因仍须脱敏stderr确认。排查及原任务恢复见[后台执行诊断](docs/BACKGROUND-EXECUTION.md)，不要重复提交或重建任务。

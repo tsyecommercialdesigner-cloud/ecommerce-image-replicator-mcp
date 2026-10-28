@@ -1,3 +1,10 @@
+# v0.1.4后后台执行维护修复（未提交、未发布）
+
+消费端报告scheduled后始终prepared。已确认Provider构造在worker异常保护与首条running写入之前，初始化抛错会缺失状态并遗留tasks注册；真实httpx无效代理协议可离线复现，但消费端具体原因仍待脱敏stderr确认。另修复close异常导致任务注册不清理，以及首次启动前取消/日志写入失败的观测边界。
+6项定向回归与完整本地201通过/1跳过，格式/lint/mypy/秘密检查通过；文档配置解析及三份消费指南正文一致性通过。
+尚无本补丁的远端CI、真实Host或收费调用，未修改消费端安装/配置/任务。根因与恢复边界见[后台执行记录](BACKGROUND-EXECUTION.md)。
+Beads创建记录报issue_prefix缺失，未初始化或修改用户已有.beads/config.yaml。
+
 # v0.1.4 实际交付
 
 v0.1.4 已于 2026-10-28 12:31（Asia/Shanghai）正式发布，目标 `a77ed089de3031cbefdbd235608b6631a95d3e40`。

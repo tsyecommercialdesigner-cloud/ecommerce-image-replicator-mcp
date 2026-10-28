@@ -14,6 +14,7 @@ TARGETS = {
     "v0.1.1": "c85f396c559411a68bdd5a2cba4bbbe858ab3245",
     "v0.1.2": "036ef5e3246ce32f23ddd8138284fc1d18f357ed",
     "v0.1.3": "f437164d10a8a7dd7fd21bd85ee1deccf7b4533e",
+    "v0.1.4": "a77ed089de3031cbefdbd235608b6631a95d3e40",
 }
 
 
@@ -44,7 +45,7 @@ def snapshot(paths):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--candidate", help="Git ref to verify against v0.1.2, then roll back")
+    parser.add_argument("--candidate", help="Git ref to verify against --baseline, then roll back")
     parser.add_argument("--baseline", choices=TARGETS, default="v0.1.2")
     args = parser.parse_args()
     reports = ROOT / ".cache/validation"

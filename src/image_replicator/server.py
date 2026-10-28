@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import copy
 import hashlib
+import logging
 import re
 import sys
 from contextlib import asynccontextmanager
@@ -26,6 +27,8 @@ from .runtime import StartupError, open_journal
 from .storage import canonical, digest
 from .workflow import Workflow, validate_task_id
 from .workflow_v2 import ImageWorkflow, aggregate, result_key
+
+LOGGER = logging.getLogger(__name__)
 
 INSTRUCTIONS = """Read replicator://input-contract and prepare_inputs before executing.
 In task mode pass
@@ -333,9 +336,13 @@ class Service:
         keys = read_keys(self.settings.project_root)
 
         async def worker():
-            provider = Provider(self.settings, keys)
+            provider = None
+            phase = "provider_initialization"
             try:
-                self.journal.put("run", thread_id, {"status": "running"})
+                self.journal.put("run", thread_id, {"status": "running", "phase": phase})
+                provider = Provider(self.settings, keys)
+                phase = "execution"
+                self.journal.put("run", thread_id, {"status": "running", "phase": phase})
                 engine = ImageWorkflow if manifest["version"] == 2 else Workflow
                 result = await engine(self.settings, self.journal, provider).execute(manifest)
                 self.journal.put(
@@ -354,19 +361,54 @@ class Service:
                 # Never expose validation inputs, provider payloads or credential-bearing URLs.
                 detail = (
                     str(exc)
-                    if isinstance(exc, (ProviderFailure, SubmissionUnknown))
+                    if phase == "execution"
+                    and isinstance(exc, (ProviderFailure, SubmissionUnknown))
                     else ("Local validation or workflow error; inspect inputs and checkpoints")
+                )
+                LOGGER.error(
+                    "Background run %s failed in %s (%s)", thread_id, phase, type(exc).__name__
                 )
                 self.journal.put(
                     "run",
                     thread_id,
-                    {"status": "blocked", "error": type(exc).__name__, "detail": detail},
+                    {
+                        "status": "blocked",
+                        "phase": phase,
+                        "error": type(exc).__name__,
+                        "detail": detail,
+                    },
                 )
             finally:
-                await provider.close()
-                self.tasks.pop(thread_id, None)
+                try:
+                    if provider is not None:
+                        await provider.close()
+                except Exception as exc:
+                    # Cleanup must not mask a saved result or strand the task registry.
+                    LOGGER.error(
+                        "Background run %s failed in provider_cleanup (%s)",
+                        thread_id,
+                        type(exc).__name__,
+                    )
+                finally:
+                    self.tasks.pop(thread_id, None)
+
+        def finished(task):
+            if task.cancelled():
+                # Cancellation before the coroutine's first step skips its finally block.
+                if self.tasks.get(thread_id) is task:
+                    self.tasks.pop(thread_id, None)
+                    try:
+                        self.journal.put("run", thread_id, {"status": "interrupted"})
+                    except Exception as exc:
+                        LOGGER.error("Run cancellation journal failed (%s)", type(exc).__name__)
+            elif (error := task.exception()) is not None:
+                # Observe failures even when the journal itself cannot be written.
+                LOGGER.error(
+                    "Background run %s worker failed (%s)", thread_id, type(error).__name__
+                )
 
         self.tasks[thread_id] = asyncio.create_task(worker())
+        self.tasks[thread_id].add_done_callback(finished)
         return {"thread_id": thread_id, "status": "scheduled"}
 
     async def close(self):
