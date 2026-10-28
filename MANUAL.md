@@ -137,11 +137,25 @@ if ($LASTEXITCODE -ne 0) { throw '升级保留验证失败' }
 
 ## 4. 客户端配置（v0.1.2）
 
-本节配置用于已发布 v0.1.2。
-已发布 v0.1.1 仍须在 args 末尾增加 `"--workspace", "D:\\EcommerceImageReplicator"`；现有固定工作区配置继续有效。
-v0.1.2 的本地 MCP JSON 见根目录 `.mcp.json.example`；启动不绑定业务目录。
-后端密钥由 MCP 自行读取安装根 `.env`，不在 Host 配置中传递。
-本地 JSON/Claude Code 项目配置候选（未联调）如下，与模板内容一致：
+本节交付 Cherry Studio、Codex、Claude Code / Claude-3p、DSH 四类 Host 的本地 stdio 配置。
+模板适用于已发布 v0.1.2；本次补充文档和模板位于 main/dev，不回写 v0.1.2 标签或附件。
+旧标签安装中没有 docs/hosts 时，可直接复制本节完整代码块，无需升级到开发代码。
+服务名统一为 `ecommerce-image-replicator`（26字符，无小数点），安装目录保持
+`D:\MCP\ecommerce-image-replicator-mcp`。所有模板均不设置 cwd、不传后端密钥、不在启动时安装依赖。
+`--project-root` 固定凭据和默认任务索引位置；省略 `--workspace` 后由每个任务显式选择业务目录。
+旧固定目录仍可在 args 末尾追加 `"--workspace", "D:\\EcommerceImageReplicator"`；已有用户使用自己的原路径。
+保留原预算、下载域名、state-dir及允许根配置，不能用最小模板覆盖这些设置。
+
+编辑前保留私有备份；仅合并目标服务，保留其他服务、认证和设置。同名服务已存在时更新该项，不重复注册。
+本节不列私有 Host 配置的存储目录。配置保存后重新启动该 Host 管理的 MCP 子进程。
+成员须先完成第2–3节安装和stdio检查，并让实际Host账号的PATH能找到uv。
+
+### 4.1 Cherry Studio
+
+依据[官方操作说明](https://docs.cherryai.com.cn/advanced-basic/extensions/mcp.md)和
+[JSON导入源码](https://github.com/CherryHQ/cherry-studio/blob/c40a14ba138255987f6f5019c77e5f51d80bc8d9/src/renderer/pages/settings/McpSettings/AddMcpServerModal.tsx)，
+打开【设置】→【MCP】→【MCP服务器】→【添加】→从JSON导入，粘贴以下完整配置。
+此块与交付文件 [cherry-studio.json](docs/hosts/cherry-studio.json) 逐字一致：
 
 ```json
 {
@@ -164,53 +178,308 @@ v0.1.2 的本地 MCP JSON 见根目录 `.mcp.json.example`；启动不绑定业�
 }
 ```
 
-Codex TOML 候选片段（未联调），只合并目标服务，保留无关配置：
+如果使用手工表单：类型选stdio，名称填ecommerce-image-replicator，命令填uv，参数按args数组逐项输入，
+每个数组元素一个参数；不要把整串参数填成一个元素，环境变量栏留空。
+保存并启用服务器，打开详情检查工具列表和日志；再进入【工作】→目标Agent菜单→【编辑】→【MCP】，启用该服务器。
+已有助手界面的版本在当前助手的MCP工具选择器中选择它。新发一条消息，要求Agent列出本服务工具并调用inspect_inputs。
+只显示“已连接”不足以证明当前助手已绑定。此GUI分支不使用Claude或Codex的注册命令。
+
+### 4.2 Codex
+
+将 [codex.toml](docs/hosts/codex.toml) 的服务表合并到 `config.toml`。
+用户作用域适合跨项目；受信任项目作用域仅对该项目生效。以下为完整目标表：
 
 ```toml
 [mcp_servers.ecommerce-image-replicator]
 command = "uv"
 args = [
-  "--directory", "D:\\MCP\\ecommerce-image-replicator-mcp",
+  "--directory", 'D:\MCP\ecommerce-image-replicator-mcp',
   "run", "--no-sync", "python", "-m", "image_replicator",
-  "--project-root", "D:\\MCP\\ecommerce-image-replicator-mcp"
+  "--project-root", 'D:\MCP\ecommerce-image-replicator-mcp'
 ]
 ```
 
-### 配置覆盖与生效
+保存并重启Codex会话/客户端，在 `/mcp` 查看连接及工具；没有启用该服务时先启用。
+CLI注册写用户作用域，见4.6；项目作用域使用上面的表手工合并。
+依据[官方MCP文档](https://learn.chatgpt.com/docs/extend/mcp)及本机codex-cli 0.163.0的mcp帮助。
 
-本版交付手工配置，未认证任何具体Host版本的端到端兼容；下列“未验证”不表示Host本身不支持。
-2026-10-28核对[Codex官方MCP文档](https://developers.openai.com/codex/mcp/)与
-[Claude Code官方MCP文档](https://code.claude.com/docs/en/mcp)，schema依据和实际项目联调分开记录。
+### 4.3 Claude Code
 
-| 清单项 | 本项目交付范围/作用域 | 验证状态 |
+项目共享作用域的 `.mcp.json` 使用 [claude-code.json](docs/hosts/claude-code.json)：
+
+```json
+{
+  "mcpServers": {
+    "ecommerce-image-replicator": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "D:\\MCP\\ecommerce-image-replicator-mcp",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "image_replicator",
+        "--project-root",
+        "D:\\MCP\\ecommerce-image-replicator-mcp"
+      ]
+    }
+  }
+}
+```
+
+此文件是消费项目配置，不是MCP安装目录的业务工作区声明。跨项目共享优先使用4.6的 `--scope user`。
+`local` 为当前项目的个人配置，`project` 为项目共享配置，`user` 为用户配置；同名时local优先于project，project优先于user。
+不把完整项目JSON覆盖到个人配置：用户作用域 `.claude.json` 仅合并目标mcpServers子项。
+重启会话，在 `/mcp` 中检查服务；项目服务按提示批准可信配置，再确认当前会话可见工具。
+依据[Claude Code官方文档](https://code.claude.com/docs/en/mcp)及本机2.1.303的mcp add帮助。
+
+### 4.4 Claude-3p（Claude Desktop第三方推理模式）
+
+这是Desktop的设备级用户本地服务器配置，不是Claude Code的project/local作用域。
+在第三方模式的【Settings】→【Developer】中编辑本地MCP配置 `claude_desktop_config.json`，
+将以下 [claude-3p.json](docs/hosts/claude-3p.json) 的目标mcpServers项合并进去：
+
+```json
+{
+  "mcpServers": {
+    "ecommerce-image-replicator": {
+      "command": "uv",
+      "args": [
+        "--directory",
+        "D:\\MCP\\ecommerce-image-replicator-mcp",
+        "run",
+        "--no-sync",
+        "python",
+        "-m",
+        "image_replicator",
+        "--project-root",
+        "D:\\MCP\\ecommerce-image-replicator-mcp"
+      ]
+    }
+  }
+}
+```
+
+保留原第三方推理提供商、模型及认证配置，不把本块写入managedMcpServers或推理配置窗口。
+保存后完全退出并重开Claude-3p，在Developer的本地服务器状态中确认启动，
+在新会话的连接器/工具选择中启用该服务；若连接失败，查看该服务器stderr日志，先复跑第3节stdio检查。
+组织策略 `isLocalDevMcpEnabled` 必须允许用户本地服务器；被管理员禁用时由管理员调整，不能用CLI绕过。
+`claude mcp add` 管理Claude Code配置，不是该Desktop用户配置的注册命令。
+
+依据[第三方模式扩展文档](https://claude.com/docs/third-party/claude-desktop/extensions.md)中User extensions，
+[策略说明](https://claude.com/docs/third-party/claude-desktop/configuration#islocaldevmcpenabled)以及
+[官方Desktop本地MCP配置教程](https://modelcontextprotocol.io/docs/develop/connect-local-servers)。
+前两者确认3p设备级用户入口，后者确认mcpServers/command/args结构；不据此推断管理配置与用户配置可互换。
+
+### 4.5 DSH：web、desktop、multica
+
+核对版本：DSH及 `@deepseek-ai/dsh-mcp-client` 0.2.1-rc.2。
+采用[官方MCP插件schema](https://github.com/deepseek-ai/deepseek-harness/blob/22ddee3792402c3e70ec5f86a63c3e3e895a2f60/packages/mcp/mcp-client/README.md)
+和[CLI补丁规则](https://github.com/deepseek-ai/deepseek-harness/blob/22ddee3792402c3e70ec5f86a63c3e3e895a2f60/apps/cli/README.md)。
+官方插件的serverName允许1–32个字母、数字、下划线或连字符。本项目名称满足限制。
+先完成目标Host自己的初始化和依赖安装；内置插件不能解析时核对该Host的运行时版本，不在MCP启动参数中追加npm安装。
+
+以下是完整 [dsh.cordis.patch.yml](docs/hosts/dsh.cordis.patch.yml)，包含必需的insert补丁层：
+
+```yaml
+- insert:
+    - id: mcp-ecommerce-image-replicator
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: ecommerce-image-replicator
+        transport: stdio
+        command: uv
+        args:
+          - --directory
+          - 'D:\MCP\ecommerce-image-replicator-mcp'
+          - run
+          - --no-sync
+          - python
+          - -m
+          - image_replicator
+          - --project-root
+          - 'D:\MCP\ecommerce-image-replicator-mcp'
+```
+
+| Host / profile | 合并目标与适用性 | 生效方式 |
 |---|---|---|
-| 本地MCP JSON | 上述完整模板，仅合并目标服务，保留其他服务及认证 | JSON解析及服务端stdio通过 |
-| Codex TOML | 上述mcp_servers表；可用于用户级或受信任项目级配置 | 字段依据官方文档；本项目Host版本未实测 |
-| Claude Code JSON | 上述mcpServers对象用于项目作用域；不要整文件覆盖其他服务 | 结构依据官方文档；本项目Host版本未实测 |
-| Claude-3p JSON | 未取得具体产品版本/schema，暂不交付专属片段 | 未验证，不与Claude Code混用 |
-| DSH profile YAML | web/desktop/multica三profile均未核对实际插件版本 | 暂不交付补丁，不猜测CLI |
-| CLI添加流程 | Codex、Claude Code、DSH在PowerShell 7/Bash/Zsh的九种组合均未做项目实测 | 本版均采用手工配置；无注册成功声明 |
-| Cherry Studio | 未核对具体版本的导入及助手绑定流程 | 本版不交付专属步骤 |
+| 原生DSH / `web` | 将补丁合并到web的独立cordis.patch.yml | 停止原web进程后重新 `dsh --profile web`；临时overlay见4.6 |
+| DSH App / `desktop` | 同一补丁合并到App拥有的desktop profile | 完全退出并重启App；npm CLI保留desktop名称，拒绝启动和dump，不能用 `dsh --profile desktop` 替代App |
+| Multica / `multica` | 同一补丁合并到Multica安装器已初始化的multica profile | 结束使用该运行时的活动任务，重启管理它的Multica daemon/宿主并新建DSH会话；不要另开第二个stdio进程冒充宿主连接 |
 
-Codex：合并TOML后保存并重启实际客户端/服务；在 `/mcp` 查看连接，确认没有禁用该服务，
-在当前对话让Agent列出本服务工具并调用不收费的inspect_inputs。用户级配置适合跨项目共享。
-Claude Code：合并项目JSON后重启会话，按客户端提示批准可信项目服务，在 `/mcp` 检查连接，
-确认当前会话能使用目标工具，再让Agent检查输入。项目作用域需在每个消费项目配置，不能把安装目录误作业务目录。
-两者均须确认服务端9个工具可发现；Host是否展示Resources/Prompts需分别核对，不能从工具可用推断。
-步骤依据官方文档，未执行真实Host注册；失败时保留stderr并先运行第3节协议检查，不反复提交绘图。
+本机核对Multica桥接包 `@multica-ai/dsh-runtime` 0.1.0-private.2，声明DSH `>=0.2.1-rc.2 <0.3.0`，
+其README提供 `dsh --profile multica --probe`（期望protocol version 1）和 `--stdio` 供宿主使用。
+`--probe`只证明桥接发现，不证明本MCP工具可调用。不同Multica版本须满足其桥接包声明，不能将web模板覆盖multica的bundle列表。
 
-如需复制交付模板为待合并文件，在自己选择的配置编辑工作目录执行；已有文件时停止：
+补丁合并：目标文件只有顶层 `[]` 时，用上面的完整列表替换；已有补丁时，在同一顶层列表追加这一insert项。
+已存在同id或同serverName时就地更新原条目，不再insert。保留已有插件、注释、`!!js`、缩进及无关配置；不编辑共享bundle。
+缺少profile时先按其Host初始化，不能用 `--from-default-profile` 重置用户已有profile。
+临时 `--patch` 只在该次CLI启动生效；持久合并后不要同时再加载相同overlay。
+
+启动后确认没有插件加载/连接错误，Agent应看到 `mcp__ecommerce-image-replicator__inspect_inputs` 等9个工具。
+权限预设若禁用工具，应按用户授权范围启用，不能直接开放所有收费工具。
+该版DSH桥接Tools与Resources，但不桥接MCP Prompts；需从资源/手册获取流程，不把缺少提示模板当作MCP断连。
+`--dump-config` 展示合成配置，可能包含其他插件私密字段，只在本机查看，不提交或共享完整输出。
+
+### 4.6 适用CLI：PowerShell 7、Bash、Zsh
+
+下面交付Codex、Claude Code、DSH三类CLI各三种Shell的完整命令。先安装相应Host并核对 `--version` / `--help`。
+命令面向Windows安装的MCP：PowerShell使用Windows命令；Bash示例使用Git Bash，Zsh示例使用可调用Windows `.exe` 的WSL/MSYS环境。
+后两者须在PATH中找到Windows版codex.exe、claude.exe、dsh.exe、uv.exe；不要把Windows安装目录交给Linux原生uv。
+Windows客户端与Windows uv继承各自Windows配置作用域；此处 `D:/...` 是传给Windows进程的绝对路径。
+原生macOS/Linux安装须先按该平台安装本项目，并把两处安装路径改为该平台真实绝对路径，不能照抄D盘路径。
+引号保护空格，Shell变量始终双引号引用；无密钥参数，无Host env注入。
+
+先在Host中检查同名项并保留私有备份。以下add命令用于没有同名项的首次注册；已有项采用4.2/4.3就地合并，不先remove。
+Codex写用户作用域；Claude明确使用user以满足多项目复用，需项目共享时只将scope改成project并在目标消费项目执行。
+get展示的是注册配置；`claude mcp list` 和会话 `/mcp` 才进一步检查连接，不能用注册成功代替工具可用。
+
+#### Codex · PowerShell 7
 
 ```powershell
 $ErrorActionPreference = 'Stop'
-$Source = 'D:\MCP\ecommerce-image-replicator-mcp\.mcp.json.example'
-$Name = '.mcp.json'
-if (Test-Path -LiteralPath $Name) { throw '文件已存在，请备份并仅合并目标服务' }
-Copy-Item -LiteralPath $Source -Destination $Name -ErrorAction Stop
+Get-Command codex,uv -ErrorAction Stop | Out-Null
+codex --version
+if ($LASTEXITCODE -ne 0) { throw 'Codex不可用' }
+codex mcp add ecommerce-image-replicator -- uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp'
+if ($LASTEXITCODE -ne 0) { throw 'Codex注册失败' }
+codex mcp get ecommerce-image-replicator --json
+if ($LASTEXITCODE -ne 0) { throw 'Codex配置查询失败' }
 ```
 
-不要将这一通用复制命令理解为所有Host都会加载当前目录文件；按选定Host的作用域合并。
-不要求cwd，不在Host配置中传密钥，仅提供本地stdio。
+#### Codex · Bash（Git Bash）
+
+```bash
+(
+  set -eu
+  command -v codex.exe >/dev/null
+  command -v uv.exe >/dev/null
+  codex.exe --version
+  codex.exe mcp add ecommerce-image-replicator -- uv --directory 'D:/MCP/ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:/MCP/ecommerce-image-replicator-mcp'
+  codex.exe mcp get ecommerce-image-replicator --json
+)
+```
+
+#### Codex · Zsh（Windows进程互操作）
+
+```zsh
+(
+  set -eu
+  command -v codex.exe >/dev/null
+  command -v uv.exe >/dev/null
+  codex.exe --version
+  codex.exe mcp add ecommerce-image-replicator -- uv --directory 'D:/MCP/ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:/MCP/ecommerce-image-replicator-mcp'
+  codex.exe mcp get ecommerce-image-replicator --json
+)
+```
+
+#### Claude Code · PowerShell 7
+
+```powershell
+$ErrorActionPreference = 'Stop'
+Get-Command claude,uv -ErrorAction Stop | Out-Null
+claude --version
+if ($LASTEXITCODE -ne 0) { throw 'Claude Code不可用' }
+claude mcp add --transport stdio --scope user ecommerce-image-replicator -- uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp'
+if ($LASTEXITCODE -ne 0) { throw 'Claude注册失败' }
+claude mcp get ecommerce-image-replicator
+if ($LASTEXITCODE -ne 0) { throw 'Claude配置查询失败' }
+```
+
+本机claude.exe 2.1.303保留 `--` 后的参数。若使用npm包装入口且出现 `--directory` 被Host解析的错误，
+先核对 `Get-Command claude -All`，使用该安装实际存在的claude.cmd执行同一命令，不能删除分隔符或改传密钥。
+
+#### Claude Code · Bash（Git Bash）
+
+```bash
+(
+  set -eu
+  command -v claude.exe >/dev/null
+  command -v uv.exe >/dev/null
+  claude.exe --version
+  claude.exe mcp add --transport stdio --scope user ecommerce-image-replicator -- uv --directory 'D:/MCP/ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:/MCP/ecommerce-image-replicator-mcp'
+  claude.exe mcp get ecommerce-image-replicator
+)
+```
+
+#### Claude Code · Zsh（Windows进程互操作）
+
+```zsh
+(
+  set -eu
+  command -v claude.exe >/dev/null
+  command -v uv.exe >/dev/null
+  claude.exe --version
+  claude.exe mcp add --transport stdio --scope user ecommerce-image-replicator -- uv --directory 'D:/MCP/ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:/MCP/ecommerce-image-replicator-mcp'
+  claude.exe mcp get ecommerce-image-replicator
+)
+```
+
+#### DSH · PowerShell 7
+
+先将4.5的完整补丁保存为自己选定编辑工作目录内的 `ecommerce-image-replicator.patch.yml`（UTF-8）。
+该路径是临时overlay文件，不是私有Host配置路径。命令针对已初始化的web profile，且目标服务尚未持久合并：
+
+```powershell
+$ErrorActionPreference = 'Stop'
+Get-Command dsh,uv -ErrorAction Stop | Out-Null
+$McpOverlay = (Resolve-Path -LiteralPath './ecommerce-image-replicator.patch.yml' -ErrorAction Stop).Path
+dsh --version
+if ($LASTEXITCODE -ne 0) { throw 'DSH不可用' }
+dsh --profile web --patch $McpOverlay --dump-config
+if ($LASTEXITCODE -ne 0) { throw 'DSH配置合成失败，停止启动' }
+dsh --profile web --patch $McpOverlay
+if ($LASTEXITCODE -ne 0) { throw 'DSH启动失败' }
+```
+
+#### DSH · Bash（Git Bash）
+
+```bash
+(
+  set -eu
+  command -v dsh.exe >/dev/null
+  command -v uv.exe >/dev/null
+  command -v cygpath >/dev/null
+  test -f './ecommerce-image-replicator.patch.yml'
+  mcp_overlay=$(cygpath -w "$PWD/ecommerce-image-replicator.patch.yml")
+  dsh.exe --version
+  dsh.exe --profile web --patch "$mcp_overlay" --dump-config
+  dsh.exe --profile web --patch "$mcp_overlay"
+)
+```
+
+#### DSH · Zsh（WSL，Windows进程互操作）
+
+```zsh
+(
+  set -eu
+  command -v dsh.exe >/dev/null
+  command -v uv.exe >/dev/null
+  command -v wslpath >/dev/null
+  test -f './ecommerce-image-replicator.patch.yml'
+  mcp_overlay=$(wslpath -w "$PWD/ecommerce-image-replicator.patch.yml")
+  dsh.exe --version
+  dsh.exe --profile web --patch "$mcp_overlay" --dump-config
+  dsh.exe --profile web --patch "$mcp_overlay"
+)
+```
+
+DSH的CLI操作是“合成检查→带overlay启动”，不是永久注册；停止进程后overlay失效。
+永久使用按4.5合并profile并从原Host重启。desktop不使用此CLI分支；Multica的桥接由原宿主管理，
+不得把上述web启动命令机械替换成multica后留下孤立进程。
+Cherry Studio与Claude-3p使用本节GUI流程，没有交付虚构的专用CLI注册命令。
+
+### 4.7 验证范围及成员接入检查
+
+配置与CLI依据、隔离验证见 [Host交付核对记录](docs/HOST-CONFIG-VALIDATION.md)。
+模板均已交付，静态解析、参数一致性和CLI注册/配置合成与GUI端到端分别记录。
+本次不改成员真实Host配置、不调用收费API。完成自己的配置后，逐项检查：
+
+1. MCP启动日志无错误；9个工具可发现，当前会话已启用该服务。
+2. 用真实消费项目绝对路径调用inspect_inputs；文件缺失应返回可解释的检查结果。
+3. Resources/Prompts按Host各自能力检查；DSH不支持Prompts，不能要求它显示提示模板。
+4. 后续生成仍按第8节确认输入与预算；不能为测试连接自动提交绘图。
 
 ## 5. 启动排障与更新
 

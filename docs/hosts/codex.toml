@@ -1,0 +1,7 @@
+[mcp_servers.ecommerce-image-replicator]
+command = "uv"
+args = [
+  "--directory", 'D:\MCP\ecommerce-image-replicator-mcp',
+  "run", "--no-sync", "python", "-m", "image_replicator",
+  "--project-root", 'D:\MCP\ecommerce-image-replicator-mcp'
+]
