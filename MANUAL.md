@@ -1,25 +1,26 @@
 # 使用手册
 
-v0.1.1 已于2026-10-27 18:20（Asia/Shanghai）正式发布。本页按实际发布结果回填；标签内手册保留发布前快照，最新交付证据见本页和Release。
+v0.1.2 已于 2026-10-28 08:26（Asia/Shanghai）正式发布。本页按实际发布结果回填；标签内手册保留发布候选快照，不覆盖已发布附件。
 
 | 发布核对项 | 实际结果 |
 |---|---|
-| Release | [v0.1.1](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.1) |
-| 标签完整SHA | `c85f396c559411a68bdd5a2cba4bbbe858ab3245` |
-| PR及审查 | [修复#3](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/3)、[目录#4](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/4)；维护代理审查，无独立人员审批 |
-| PR Windows/Linux CI | [修复通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40486497182)、[目录通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40486824660) |
-| 合入Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40487042057) |
-| 标签CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40487272872)，先草稿、核验后公开 |
-| 安装验证 | Windows Python 3.12.14，远端干净checkout及下载源码包锁定无开发依赖安装、wheel安装通过；8工具/1资源/1提示；无收费调用 |
+| Release | [v0.1.2](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.2) |
+| 标签完整SHA | `036ef5e3246ce32f23ddd8138284fc1d18f357ed` |
+| PR及审查 | [#6](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/6)；维护代理代码审查，无独立人员审批 |
+| PR Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608059123) |
+| 合入Windows/Linux CI | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608272092) |
+| 标签CI/CD | [通过](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/40608508449)，先草稿、核验后公开 |
+| 安装验证 | 下载源码包锁定无开发依赖安装、wheel按锁安装依赖通过；9工具/1资源/1提示；任务模式及固定模式stdio通过；无收费调用 |
 
-本地131项测试通过、1项POSIX专项跳过，CI覆盖Windows/Linux。仓库未配置分支保护，门禁按流程核对。实际Host跨提升权限切换未实机联调。4个附件GitHub摘要及下载文件一致，两个包与SHA256SUMS一致，SOURCE_COMMIT与标签一致。
+本地145项通过、1项POSIX测试在Windows跳过；CI覆盖Windows/Linux。仓库未配置分支保护，门禁按流程核对。
+实际Host产品联调未验证。四个附件下载摘要与GitHub摘要一致，两个包与SHA256SUMS一致，SOURCE_COMMIT与标签一致。
 
 | 正式附件 | SHA256 |
 |---|---|
-| [ecommerce_image_replicator_mcp-0.1.1-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/ecommerce_image_replicator_mcp-0.1.1-py3-none-any.whl) | `1656dd7973d7f6d7a92c19116c7034f7160a46b61e039de838765608a6f1931a` |
-| [ecommerce_image_replicator_mcp-0.1.1.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/ecommerce_image_replicator_mcp-0.1.1.tar.gz) | `06eaabdf08c1a92bd2e6e84d8e4fa84c286e9971d902f7346e718712e2faf0a9` |
-| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/SHA256SUMS) | `5e9028bb84a68d1804a383aefb94bb8b5c0d62ce7e5ff26cfebc94ba88c7c3ba` |
-| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.1/SOURCE_COMMIT) | `88fbd95e3822b1a799818c341c662e49130aeb0cdd391821b65256287355cbbd` |
+| [ecommerce_image_replicator_mcp-0.1.2-py3-none-any.whl](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/ecommerce_image_replicator_mcp-0.1.2-py3-none-any.whl) | `44eb9df384ca2c02b47070a264ad8ba5ad3880f2a3bda50886862856467a2d87` |
+| [ecommerce_image_replicator_mcp-0.1.2.tar.gz](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/ecommerce_image_replicator_mcp-0.1.2.tar.gz) | `3a2ce3e2ae290bdbeaf2f67bf7c65084ec902d88ed03e3145386df434c809bc1` |
+| [SHA256SUMS](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/SHA256SUMS) | `1b47fa36fdb588d0123940165d5ceca4ffad8f281d554e71d69c05d4e581c29d` |
+| [SOURCE_COMMIT](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/download/v0.1.2/SOURCE_COMMIT) | `86cc3295ddc142ac58008589e900fdd9246f12ffced94bfd1cf57e097db63e31` |
 
 ## 1. 环境准备
 
@@ -32,11 +33,11 @@ Host 产品和旧协议兼容性尚未验证。需要 GitHub/PyPI 访问，业�
 安装根 `.env` 提供 `ZHENZHEN_GEMINILLM_API_KEY` 和 `ZHENZHEN_GPTIMAGEGEN_API_KEY`。
 逐字段 `.env` → 进程 → Windows 当前用户环境，仅缺失可回退；空值、重复、语法错误、
 读取失败均报错。不展开变量，不执行代码；限制为服务账号及必要管理员可读取，修改后重启。
-安装根固定通过 `--project-root` 指定。已发布 v0.1.1 用 `--workspace` 固定业务目录；当前源码支持任务级目录，见第4节及下方说明，均不依赖 Host cwd。
+安装根固定通过 `--project-root` 指定。已发布 v0.1.1 用 `--workspace` 固定业务目录；v0.1.2 支持任务级目录，见第4节及下方说明，均不依赖 Host cwd。
 
 ## 2. 项目初始化
 
-以下为已发布v0.1.1的固定版本安装流程。
+以下为已发布v0.1.2的固定版本安装流程。
 先从仓库Release核对发布状态、Windows CI及附件SOURCE_COMMIT全文；完整SHA必须对应该标签。
 仓库访问需成员自己的GitHub权限，不能把令牌拼入URL。D盘及运行账号须有相应空间与读写权限。
 
@@ -45,9 +46,9 @@ $ErrorActionPreference = 'Stop'
 New-Item -ItemType Directory -Path 'D:\MCP' -Force | Out-Null
 $ProjectDir = 'D:\MCP\ecommerce-image-replicator-mcp'
 if (Test-Path $ProjectDir) { throw '目录已存在，请使用更新流程。' }
-$ExpectedCommit = 'c85f396c559411a68bdd5a2cba4bbbe858ab3245'
+$ExpectedCommit = '036ef5e3246ce32f23ddd8138284fc1d18f357ed'
 if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA格式不正确，停止安装' }
-git clone --branch v0.1.1 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
+git clone --branch v0.1.2 --single-branch https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw 'clone 失败' }
 $ActualCommit = git -C $ProjectDir rev-parse HEAD
 if ($LASTEXITCODE -ne 0 -or $ActualCommit -ne $ExpectedCommit) { throw '提交不匹配，停止安装' }
@@ -70,20 +71,19 @@ Unix 使用 `chmod 600 .env`。Agent 工作区按工作流契约放入输入，�
 CI job 超时设为15分钟。成员无需安装开发依赖即可执行下面的只读协议发现检查（45秒超时，不请求供应商）：
 
 ```powershell
-New-Item -ItemType Directory -Path 'D:\EcommerceImageReplicator' -Force | Out-Null
-uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scripts/smoke.py --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\EcommerceImageReplicator'
+uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python scripts/smoke.py --project-root 'D:\MCP\ecommerce-image-replicator-mcp'
 if ($LASTEXITCODE -ne 0) { throw '协议发现失败，停止接入Host' }
 ```
 
-工作区需已存在。成功输出包含8个工具、1个资源、1个提示；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
+任务模式启动无需业务目录；选择业务目录时该目录需已存在。成功输出包含9个工具、1个资源、1个提示；失败非零退出。该检查不执行绘图，也不代表具体Host联调通过。
 
 现有用户可以继续显式指定原业务工作区；默认目录改名不代表自动迁移。不要只切换路径后丢弃原`.replicator`，其中包含任务与供应商恢复记录。
 
-## 4. 客户端配置（v0.1.2 候选，待发布核验）
+## 4. 客户端配置（v0.1.2）
 
-本节配置用于已完成任务级工作区改造的当前源码，不能直接用于上述 v0.1.1 安装。
+本节配置用于已发布 v0.1.2。
 已发布 v0.1.1 仍须在 args 末尾增加 `"--workspace", "D:\\EcommerceImageReplicator"`；现有固定工作区配置继续有效。
-当前源码的本地 MCP JSON 见根目录 `.mcp.json.example`；启动不绑定业务目录。
+v0.1.2 的本地 MCP JSON 见根目录 `.mcp.json.example`；启动不绑定业务目录。
 后端密钥由 MCP 自行读取安装根 `.env`，不在 Host 配置中传递。
 本地 JSON/Claude Code 项目配置候选（未联调）如下，与模板内容一致：
 
@@ -127,7 +127,7 @@ Claude-3p、Cherry Studio、DSH web/desktop/multica 及各 Host CLI 的 PowerShe
 ## 5. 启动排障与更新
 
 ```powershell
-uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp' --workspace 'D:\EcommerceImageReplicator'
+uv --directory 'D:\MCP\ecommerce-image-replicator-mcp' run --no-sync python -m image_replicator --project-root 'D:\MCP\ecommerce-image-replicator-mcp'
 if ($LASTEXITCODE -ne 0) { throw '服务退出失败，检查 stderr。' }
 ```
 
@@ -148,15 +148,15 @@ if ($LASTEXITCODE -ne 0) { throw '无法记录原提交' }
 Write-Host "保留原提交：$PreviousCommit"
 $ExpectedCommit = Read-Host '粘贴目标Release的SOURCE_COMMIT完整40位SHA'
 if ($ExpectedCommit -notmatch '^[a-fA-F0-9]{40}$') { throw 'SHA无效' }
-git -C $ProjectDir fetch origin tag v0.1.1
+git -C $ProjectDir fetch origin tag v0.1.2
 if ($LASTEXITCODE -ne 0) { throw '获取目标失败' }
-$TagCommit = git -C $ProjectDir rev-parse 'v0.1.1^{commit}'
+$TagCommit = git -C $ProjectDir rev-parse 'v0.1.2^{commit}'
 if ($LASTEXITCODE -ne 0 -or $TagCommit -ne $ExpectedCommit) { throw '标签与发布提交不一致' }
-git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.1
+git -C $ProjectDir switch --detach --no-overwrite-ignore v0.1.2
 if ($LASTEXITCODE -ne 0) { throw '切换失败' }
 uv --directory $ProjectDir sync --locked --no-dev
 if ($LASTEXITCODE -ne 0) { throw '安装失败，不启动服务' }
-uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir --workspace 'D:\EcommerceImageReplicator'
+uv --directory $ProjectDir run --no-sync python scripts/smoke.py --project-root $ProjectDir
 if ($LASTEXITCODE -ne 0) { throw '协议复验失败' }
 ```
 
@@ -171,7 +171,7 @@ Git 跟踪 src、tests、pyproject、uv.lock、脚本、CI、规范和空密钥�
 
 ## 7. 资源清单
 
-下表对应当前源码的新契约，尚未发布；v0.1.1 保留固定工作区及8工具契约。
+下表对应 v0.1.2；v0.1.1 保留固定工作区及8工具契约。
 
 | 能力 | 参数和结果 | 副作用 |
 |---|---|---|
@@ -226,7 +226,7 @@ partial 会返回已完成图片，needs_revision 可用 prepare_revision 只修
 
 详见 [工作流契约](docs/WORKFLOW.md)。绘图最多三次尝试，明确失败后的新提交可能再次收费；
 未知提交不会重发。供应商无幂等键时，框架无法消除“受理成功但未收到ID”的不确定窗口。
-停止 MCP 不撤销供应商任务，下次 execute 相同 thread_id 恢复。
+停止 MCP 不撤销供应商任务，下次 execute 相同 run_id 恢复（旧固定模式兼容 thread_id）。
 `.replicator` 包含业务信息和原始响应，需本机权限保护并按业务留存要求管理。
 默认下载允许 ai.t8star.org、files.closeai.fans，不跟随重定向；结合部署出口限制使用。
 原尺寸恢复涉及缩放，不保证像素无损；文案位置和生成质量仍需视觉验收。
@@ -256,12 +256,12 @@ v0.1.0在管理员环境首次启动时可能创建仅SYSTEM、Administrators及
 
 `Cannot initialize workspace journal`也可能是磁盘空间或数据库锁问题，不应一律当作权限错误。保留原文件并检查相应条件。`Workspace directory not found`表示需要先创建业务工作区。
 
-已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。版本展示修正及一致性检查已纳入发布后的源码PR，尚未进入新的发布标签；不覆盖v0.1.1附件。
+已知展示问题：已发布v0.1.1的MCP serverInfo仍显示0.1.0，发行包及SOURCE_COMMIT为正确的0.1.1版本，Windows权限修复已包含。v0.1.2 已修复版本展示并验证与发行元数据一致；不覆盖v0.1.1附件。
 
 
-## 任务级工作区使用（v0.1.2 候选，待发布核验）
+## 任务级工作区使用（v0.1.2）
 
-当前源码提供9个工具，第7节工具表按新契约更新。已发布 v0.1.1 为8个工具，无 import_run，仍需固定工作区。
+v0.1.2 提供9个工具，第7节工具表按新契约更新。已发布 v0.1.1 为8个工具，无 import_run，仍需固定工作区。
 省略启动 --workspace 后，Agent 必须在 inspect_inputs / prepare_run 传已有项目绝对目录，保存返回 run_id；
 后续用 run_id 查询、生成、验收与恢复，prepare_revision 用 parent_run_id。旧固定模式继续兼容 thread_id。
 详细调用示例、可选目录限制、索引备份和旧任务导入见[任务级工作区说明](docs/TASK-WORKSPACES.md)。

@@ -1,5 +1,8 @@
 # 本地开发交接文档
 
+v0.1.2 已完成实际发布；PR #6、合入及标签双平台CI和附件安装核验通过。
+目标 `036ef5e3246ce32f23ddd8138284fc1d18f357ed`，正式交付证据见 [v0.1.2](releases/v0.1.2.md)。以下“未发布”为历史开发阶段。
+
 2026-10-28 当前源码已改为任务级工作区（尚未提交/发布）：CLI 可省略 --workspace，
 准备时显式选目录，后续按持久 run_id 路由；旧固定配置与 thread_id 恢复保留，新增 import_run。
 契约见 [TASK-WORKSPACES.md](TASK-WORKSPACES.md)。本地质量门禁145通过、1项POSIX跳过，
