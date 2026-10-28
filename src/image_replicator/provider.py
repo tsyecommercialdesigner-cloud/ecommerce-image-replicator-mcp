@@ -11,6 +11,7 @@ import httpx
 
 from .config import KEYS, Settings
 from .diagnostics import record_llm_error
+from .network import create_http_client
 from .storage import atomic_write, canonical, strict_json
 
 
@@ -149,9 +150,7 @@ class Provider:
     def __init__(self, settings: Settings, keys: dict, client: httpx.AsyncClient | None = None):
         self.settings = settings
         self.keys = keys
-        self.client = client or httpx.AsyncClient(
-            timeout=httpx.Timeout(settings.http_timeout), follow_redirects=False
-        )
+        self.client = client if client is not None else create_http_client(settings)
 
     async def close(self):
         await self.client.aclose()

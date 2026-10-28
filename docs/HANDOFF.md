@@ -1,3 +1,17 @@
+# v0.1.6后：环境代理兼容与显式直连（未发布）
+
+默认proxy_mode=environment，按标准库/HTTPX既有规则保留环境与系统代理回退、域名/端口/IPv4/IPv6/星号绕过；额外接受合法独立方括号IPv6，使用公开transport/mounts，不改os.environ或用户/Host配置，不吞非法配置、不自动直连。--proxy-mode direct显式关闭本客户端代理选择，仍保留CA环境与TLS验证；资源显示模式和httpx-bracketed-ipv6-v1能力。Key读取优先级和run绑定不变，.env不导入NO_PROXY。
+
+只读核对当前DSH包，已确认LOOPBACK_NO_PROXY常量和withLoopback合并逻辑；不据此宣称每一条子进程路径，也不将单次/models 401当成全部供应商路径验证。消费Agent提出的删除全部方括号条目且修改os.environ的补丁不采用。最终串行256通过/1项平台跳过，格式/lint/mypy/秘密检查通过，含新13项网络测试和尺寸恢复回归。详见[网络说明](NETWORK-COMPATIBILITY.md)，README/MANUAL/三份入口及手册副本同步，尚未提交、推送或发布，无真实收费请求。
+
+# v0.1.6后：画布补偿与本地后处理恢复（未发布）
+
+维护源码提供canvas-normalize-v1：实际画布比例偏差不超过1%时归一化请求画布、裁去预处理补边并恢复原图精确宽高，超过时返回带实际/请求尺寸的postprocess诊断并保留raw。新receipt保存请求transform，产物旁geometry.json与job_result记录补偿报告，原模型路由不变。
+
+新增recover_postprocess，共12工具；仅显式选择downloaded的v2原任务图片，复用本地raw，不创建Provider、不下载、不分析、不绘图或付费验收。成功图校验并保留，恢复结果review_required；保留旧失败/运行快照，更新原任务状态。锁、逐图错误、重复调用与重启恢复保留原身份；恢复标记防止后续execute重放该图检查点并覆盖显式验收。同run其他图的execute仍可能收费。
+
+文档已区分未发布维护源码与正式v0.1.6（仍11工具），同步MANUAL/README/三份消费入口及手册副本，详见[后处理说明](POSTPROCESS-RECOVERY.md)。本地最终串行243通过/1项平台跳过，格式/lint/mypy/秘密检查通过，含实际SDK新工具成功/错误返回。未改成员密钥、工作区、真实任务、成功图、Host配置或代理行为；未提交、推送或发布。Beads仍因issue_prefix缺失无法创建记录，原.beads/config.yaml改动保留。
+
 # v0.1.6 实际交付
 
 v0.1.6 已于 2026-10-28 14:40（Asia/Shanghai）正式发布，目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。

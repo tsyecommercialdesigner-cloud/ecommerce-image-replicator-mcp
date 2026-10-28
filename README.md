@@ -6,11 +6,15 @@
 
 ## 发布状态
 
+当前维护源码新增画布尺寸补偿及 `recover_postprocess`（尚未发布，共12工具）。小幅比例偏差先归一化到请求画布，再去补边并恢复原图精确宽高；已下载的v2失败图可沿原run_id纯本地恢复，无供应商请求。详见[尺寸恢复说明](docs/POSTPROCESS-RECOVERY.md)。下述v0.1.6发布记录及附件保持原样，该发布版没有此新入口。
+
 [正式发布v0.1.6](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/releases/tag/v0.1.6)，2026-10-28 14:40（Asia/Shanghai），目标 `1459ebd0e4b63de6bc5a75e41458846f7e6dce83`。
 新增逐图预检与显式分析恢复，共11工具。220通过/1项平台跳过，Windows/Linux PR、合入及标签CI通过；附件、源码/wheel安装、旧任务升级回滚及安装后保留7图的恢复准备检查通过，无真实收费请求。
 详细证据见[发布记录](docs/releases/v0.1.6.md)。
 
 ## 任务级工作区
+
+维护源码另增代理兼容（未发布）：默认 `--proxy-mode environment`，保留HTTP/HTTPS/ALL代理与NO_PROXY绕过规则，在本客户端兼容合法的方括号IPv6条目，不修改进程或用户环境。仅需直连时由操作者显式加 `--proxy-mode direct`，忽略代理但继续使用CA环境并校验证书；不自动降级直连。规则见[网络兼容说明](docs/NETWORK-COMPATIBILITY.md)。
 
 消费端 Agent 从[使用手册](docs/guidebook-of-ecommerce-image-replicator-mcp.md)开始，按“阶段→诊断→修改位置→恢复入口”处理问题。可复制入口在[output-docs](output-docs/AGENTS.md)：AGENTS.md / CLAUDE.md / CONVENTIONS.md 均相对链接到随包交付的 docs 手册，复制时保留该目录。
 

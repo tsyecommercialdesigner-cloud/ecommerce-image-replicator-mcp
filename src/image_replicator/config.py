@@ -5,6 +5,7 @@ import sys
 from dataclasses import dataclass, field
 from io import StringIO
 from pathlib import Path
+from typing import Literal
 
 from dotenv.parser import parse_stream
 
@@ -72,11 +73,14 @@ class Settings:
     max_input_pixels: int | None = None
     http_timeout: float | None = None
     base_url: str = field(default="https://ai.t8star.org", init=False)
+    proxy_mode: Literal["environment", "direct"] = "environment"
 
     def __post_init__(self):
         self.validate_execution()
 
     def validate_execution(self):
+        if self.proxy_mode not in {"environment", "direct"}:
+            raise ValueError("proxy-mode must be environment or direct")
         for name in (
             "max_batch_images",
             "max_request_bytes",

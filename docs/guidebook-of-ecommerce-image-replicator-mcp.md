@@ -6,6 +6,8 @@
 
 ## 1. 接手时先做什么
 
+维护源码还提供 `canvas_compensation_policy=canvas-normalize-v1`、`postprocess_recovery_policy=downloaded-local-v1` 和 `recover_postprocess`（共12工具，未发布；正式v0.1.6没有）。先核对当前连接能力，缺失时交操作者升级和重启，不自行绕过校验。
+
 1. 发现 Host 实际暴露的工具名称及参数。名称可能有 Host 前缀，不猜前缀。
 2. 读取 Resource `replicator://input-contract` 和 Prompt `prepare_inputs`。后者不是 Tool。Host 不桥接资源/提示时，通过本手册及实际工具 schema 核对能力，不为读不到资源而调用收费工具试连接。
 3. 记录当前版本、`workspace_mode`、`allowed_roots`、`state_directory` 和限制策略。新恢复能力标识为 `analysis_recovery_policy=explicit-pre-image-child-v1`。有标识仍须核对两个工具的发现结果。
@@ -109,7 +111,7 @@ blocked不是跨阶段通用的“永远终态”。普通中断可沿原ID恢�
 | phase=copy_preflight；unmatched/overlap/chain/conflict及规则索引 | 该图transcription、replacement_rule_source、effective_delta；修正该图的完整delta | prepare_analysis_recovery，保留其它产品/品牌增量；通常不重置已成功分析 | 用prepare_revision；全局删掉所有替换；改磁盘文件后假定旧run已更新 |
 | phase=resolve_design/design_preflight | 最终文案、禁用claim、产品属性/品牌色与契约是否一致 | 出图前、无receipt时可准备带完整修正delta的分析/文案恢复 | 为过校验放宽原图构图、对象、互动边界 |
 | phase=generate；已有image receipt或unknown/pending | 原供应商任务状态，task_id及是否已受理 | 原run恢复/必要时reconcile；只有已有成图的视觉修改才用revision | 开分析恢复、换run或直接API重提 |
-| phase=postprocess；供应商成功但本地保存/哈希失败 | 保存权限、下载限制、原receipt与产物路径 | 修正本地条件后恢复原操作、下载原任务结果 | 改文案、重置分析或重新付费绘图 |
+| phase=postprocess；尺寸偏差或本地保存失败，status=downloaded | 原receipt、retained raw、actual_size/requested_size、本地权限 | 有新能力时用原run_id及指定image_ids调用recover_postprocess；不执行整条图 | 改文案、重置分析、直接下载raw交成品或重新付费绘图 |
 | review_required/needs_revision/phase=review | 原图+产品图+成图的实际验收证据，review检查覆盖/哈希 | 记录验收；已有成图需改时prepare_revision，再执行及复验 | 直接把旧失败图标成通过，或删除成功图重来 |
 
 旧版本可能只给笼统ValueError，不能根据异常类猜是scene还是文案。新preflight能定位时用它；能力缺失则报告缺口，不连续尝试互不适用的工具。
@@ -194,6 +196,27 @@ corrected_rules须来自该图transcription和已有产品事实；复制原delt
 
 ## 8. 视觉验收和已有成图修订
 
+### 先区分尺寸后处理恢复和重新绘图
+
+维护源码（未发布）对所有模型按实际尺寸触发补偿，不改变模型路由。尺寸相同走原路径；宽高比相对偏差不超过1%时，Lanczos归一化到请求画布，再按保存的crop去除补边并还原原图完整宽高。例如 `1206×1304 → 800×864 → 去补边 → 790×857`，不是只按790宽缩成790×854。比例偏差计算为两方向比例中的较大值除以较小值减1；超过1%报 `provider_canvas_aspect_mismatch`。补偿只修复尺寸，不证明构图、文字或清晰度合格。
+
+已有v2任务若是downloaded但后处理失败，使用原run_id、get_run返回的明确image_id调用新工具：
+
+```json
+{
+  "run_id": "从原任务返回的run_id",
+  "image_ids": [
+    "从原任务返回的image_id"
+  ]
+}
+```
+
+上面是 `recover_postprocess` 参数。它直接恢复原任务，不生成子run，不调用Provider，不分析、不查询、不下载、不绘图、不付费验收。新任务保存请求transform；旧v2任务缺少该字段时从冻结参考图重建相同几何并记录来源。只读取本地raw，缺失返回local_file_missing，不自行从日志URL取图。v1旧图不支持此新入口，应保留现场交维护者处理。
+
+返回逐图recovered/generated_preserved/rejected；部分成功仍isError=true，保留成功部分并按jobs逐图处理。generated_preserved只表示原成功文件哈希未变；恢复出的图为review_required，用get_run查看尺寸/补偿报告，然后视觉检查并record_review。不要为完成恢复再调用execute_run；本地恢复成功的图以后也会跳过原图流程，保留显式验收；但execute仍可能推进同run其他图的分析、绘图或vision验收而收费。
+
+新成品旁的 `.geometry.json` 记录actual_size/requested_size/final_size/crop、compensated、偏差及方法，原raw保留；get_run.jobs.postprocess可读同样报告。`downloaded_receipt_required` 表示先解决原提交/下载阶段；`frozen_reference_hash_mismatch`、`artifact_hash_mismatch` 或 `stored_geometry_conflict` 表示完整性问题，不重写哈希或覆盖文件。比例明显异常需人工确认供应商输出，不换模型重新生成碰运气。工具不接受任意外部raw路径，成功文件不覆盖。
+
 逐图检查参考图、用户产品图和产物，核对核心构图/对象/动作、产品身份、文字内容与颜色、艺术风格。通过record_review提交绑定原图/成图/契约哈希的完整检查；generation_complete不等于验收通过。
 
 已有成图需调整时用prepare_revision，只选需要修改的图片并提供完整delta。准备后仍需对新run执行和验收；原图和原成图不删除。成功文件被外部改动后，不伪造哈希重新验收。
@@ -202,7 +225,9 @@ corrected_rules须来自该图transcription和已有产品事实；复制原delt
 
 - 新策略opt-in-v1的null表示不限制，不是未配置。三项预算参数只在用户显式设置时生效；显式0不是无限。旧v0.1.2及更早仍有旧行为，报告版本差异，不扫描Host配置。
 - 默认不限额不取消供应商限制、有限自动重试、路径/哈希/权限检查和用户费用授权。分析失败六次已可能产生LLM费用，不能承诺“没有出图就免费”。
-- 对本项目锁定HTTPX 0.28.1，NO_PROXY使用 `localhost,127.0.0.1,::1`，不要加 `[::1]`。IPv6在完整URL里才使用例如 `http://[::1]:10888` 的方括号形式。不要自行修改操作者环境；修改后重启当前Host/MCP，让新进程继承值。
+- 正式v0.1.6及更早的HTTPX 0.28.1环境解析不兼容NO_PROXY中的独立 `[::1]`；手工配置可用 `localhost,127.0.0.1,::1`。但Host可能主动合并方括号写法，不能保证修改用户环境或重启就能解决，也不能把宿主注入误当成操作者写错。
+- 维护源码（未发布）提供 `no_proxy_compatibility=httpx-bracketed-ipv6-v1`；默认资源proxy_mode=environment，保留HTTP/HTTPS/ALL代理与绕过语义，在本客户端接受合法方括号IPv6（包括端口），不删除所有以 `[` 开头的条目、不改os.environ或用户/Host配置。非法代理仍失败，绝不自动直连。显式直连交操作者给当前服务加 `--proxy-mode direct`，重启后复核资源，仍保留CA环境及TLS验证；不把环境变量或认证URL值写进交接。项目.env只读Key，不加载NO_PROXY=*；Agent不擅自改服务源码或配置。
+- 本机DSH Desktop 0.2.1-rc.2实际宿主派生子进程验证：继承同样含[::1]的环境，正式v0.1.6源码初始化失败，修复源码environment/direct均初始化成功。该证据只覆盖客户端初始化，无HTTP请求；不代表现有安装已更新或收费绘图已通过。保持原run_id，待操作者更新当前实际服务、重启并复核能力后，再按原授权恢复，不重新准备任务碰运气。
 - v0.1.5已修复Provider构造异常不落盘及清理注册残留。它让错误可见，不自动修正NO_PROXY。没有历史stderr不能伪造堆栈；日志未记录某异常也不能证明该异常没有发生。
 - 缺少可用诊断就报告准确的run_id、image_id、阶段、状态和异常类型，不根据进程数量判根因，不全盘找日志，不杀掉所有服务实例。
 - get_run/local preflight无供应商请求；reconcile有查询，execute可能收费。权限拒绝不能通过Shell或直接API绕过。

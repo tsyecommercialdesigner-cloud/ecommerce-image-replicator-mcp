@@ -227,6 +227,8 @@ class Workflow:
             "run_job", f"{state.thread_id}:{job.get('run_index', index)}", {"key": key}
         )
         record = self.journal.get("image", key) or {"status": "new", "attempts": 0}
+        if record["status"] == "new" and not record["attempts"]:
+            record["transform"] = job["transform"]
         raw_path = self.local(f".replicator/raw/{key}.image")
         if record["status"] == "downloaded":
             if not raw_path.exists():
@@ -370,6 +372,11 @@ class Workflow:
             stem = self.local(f"artifacts/{job['group']}_{job['order']:03d}_{generated['task_id']}")
             target = await asyncio.to_thread(
                 postprocess, Path(generated["raw"]), stem, job["transform"]
+            )
+            self.journal.put(
+                "postprocess",
+                generated["key"],
+                strict_json(target.with_suffix(".geometry.json").read_text(encoding="utf-8")),
             )
             artifacts.append(str(target.relative_to(self.root)))
         return {"artifacts": artifacts}

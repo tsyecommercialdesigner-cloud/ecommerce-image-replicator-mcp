@@ -19,6 +19,7 @@ from mcp.types import CallToolResult, TextContent
 
 from .config import Settings, read_keys
 from .design import edit_boundary, effective_delta, resolve_design, review_status
+from .images import CANVAS_ASPECT_TOLERANCE
 from .inputs import discover, freeze, inspect_images, safe_path
 from .models import (
     REFERENCE_POLICY,
@@ -29,6 +30,7 @@ from .models import (
     RunOptions,
 )
 from .models import ReferenceReviewReport as ReviewReport
+from .postprocessing import recover_postprocessing
 from .provider import Provider, ProviderFailure, SubmissionUnknown
 from .recovery import RecoveryRejected, preflight, prepare_recovery
 from .routing import WorkspaceRouter
@@ -55,6 +57,10 @@ prepare_analysis_recovery prepares ONLY selected blocked pre-image jobs, with co
 deltas and/or explicit failed text/visual retry scopes. It returns a linked recovery run_id;
 it never executes. Keep the original parent and successful artifacts. Reuse request_id for
 idempotent preparation; follow recovery_run_id afterward. prepare_revision requires an artifact.
+For downloaded v2 images blocked at postprocess, use recover_postprocess with explicit image_ids
+and the original run_id. It uses retained raw files locally, never calls a provider or reviews.
+Small canvas aspect differences normalize to the requested canvas, crop padding, then restore
+both original dimensions. Large aspect changes remain errors; never deliver raw as final.
 LLM analysis can be billable even when no image task was submitted. Valid cached result wins
 over a historical error marker. Never inspect private Host configs or edit journal records.
 Never resubmit unknown image outcomes; reconcile with a known supplier task_id first.
@@ -196,6 +202,31 @@ class Service:
             return {"status": "analysis_required", "missing": missing}
         plan = resolve_design(job, context, {"texts": delta["texts"]}, {"scene": delta["scene"]})
         return {"plan": plan, "design_sha256": digest(plan)}
+
+    def recover_postprocess(self, thread_id: str, image_ids: list[str]):
+        if any(not task.done() for task in self.tasks.values()):
+            raise ValueError("Execution active; wait before local postprocess recovery")
+        with portalocker.Lock(
+            str(safe_path(self.settings.workspace, ".replicator/execution.lock", exists=False)),
+            timeout=0,
+        ):
+            manifest = self.manifest(thread_id)
+            report = recover_postprocessing(self, manifest, image_ids)
+            if any(row["status"] == "recovered" for row in report["jobs"]):
+                self.journal.put(
+                    "postprocess_run_history", thread_id, self.journal.get("run", thread_id) or {}
+                )
+                self.journal.put(
+                    "run",
+                    thread_id,
+                    aggregate(
+                        [
+                            self.journal.get("job_result", result_key(thread_id, index)) or {}
+                            for index in range(len(manifest["jobs"]))
+                        ]
+                    ),
+                )
+            return report
 
     def record_review(self, thread_id: str, report: ReviewReport):
         manifest = self.manifest(thread_id)
@@ -499,6 +530,9 @@ def create_server(
                 "review_schema": ReviewReport.model_json_schema(),
                 "analysis_recovery_update_schema": AnalysisRecoveryUpdate.model_json_schema(),
                 "analysis_recovery_policy": "explicit-pre-image-child-v1",
+                "postprocess_recovery_policy": "downloaded-local-v1",
+                "canvas_compensation_policy": "canvas-normalize-v1",
+                "canvas_aspect_tolerance": CANVAS_ASPECT_TOLERANCE,
                 "alignment_policy": REFERENCE_POLICY,
                 "edit_boundary": edit_boundary(),
                 "generation_image_roles": ["original_reference", "user_product_photos"],
@@ -509,6 +543,8 @@ def create_server(
                 ],
                 "ordering": "natural filename order within each reference folder",
                 "structured_output": True,
+                "proxy_mode": settings.proxy_mode,
+                "no_proxy_compatibility": "httpx-bracketed-ipv6-v1",
                 "execution_limit_policy": "opt-in-v1",
                 "operational_limit_policy": "opt-in-v1",
                 "download_hosts": settings.download_hosts,
@@ -651,6 +687,32 @@ def create_server(
             raise ToolError(
                 f"Recovery preparation rejected ({type(exc).__name__}); "
                 "preserve original run and inspect preflight"
+            ) from None
+
+    @server.tool(structured_output=True)
+    def recover_postprocess(
+        image_ids: list[str], thread_id: str | None = None, run_id: str | None = None
+    ) -> dict[str, Any]:
+        """Recover selected downloaded v2 images locally without any provider API calls.
+
+        Reuses retained raw files in the original run. Preserves successful artifacts;
+        outputs require visual review. Does not execute the graph or reset image receipts.
+        """
+        try:
+            service, local_id = router.resolve(run_id=run_id, thread_id=thread_id)
+            report = router.expose(service, service.recover_postprocess(local_id, image_ids))
+            if report["status"] != "ok":
+                result: Any = CallToolResult(
+                    content=[TextContent(type="text", text=canonical(report))],
+                    structured_content=report,
+                    is_error=True,
+                )
+                return result
+            return report
+        except Exception as exc:
+            raise ToolError(
+                f"Local postprocess recovery rejected ({type(exc).__name__}); "
+                "check explicit image_ids, downloaded receipt, retained raw and execution lock"
             ) from None
 
     @server.tool(structured_output=True)
@@ -812,6 +874,13 @@ def main():
         help="Optional positive limit; omitted means unlimited",
     )
     parser.add_argument("--download-host", action="append", default=None)
+    parser.add_argument(
+        "--proxy-mode",
+        choices=("environment", "direct"),
+        default="environment",
+        help="Default: environment proxies with IPv6 bypass compatibility; direct disables "
+        "only proxies for this MCP, preserving CA settings and TLS verification",
+    )
     for flag in (
         "max-input-bytes",
         "max-input-pixels",
@@ -838,6 +907,7 @@ def main():
         max_download_bytes=args.max_download_bytes,
         poll_timeout=args.poll_timeout,
         http_timeout=args.http_timeout,
+        proxy_mode=args.proxy_mode,
     )
     try:
         server = create_server(
