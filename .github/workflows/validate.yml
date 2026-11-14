@@ -47,7 +47,7 @@ jobs:
           uv run --no-sync python scripts/verify_upgrade.py --candidate HEAD --baseline v0.1.6
           if ($LASTEXITCODE -ne 0) { throw 'Candidate preservation failed' }
       - run: uv run --no-sync pip-audit
-      - run: uv build --no-sources --out-dir .cache/ci/dist
+      - run: uv build --no-sources --no-create-gitignore --out-dir .cache/ci/dist
       - run: uv run --no-sync python scripts/verify_candidate_install.py .cache/ci/dist
       - name: Record tested candidate
         if: inputs.candidate && runner.os == 'Linux'
