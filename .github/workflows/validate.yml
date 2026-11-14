@@ -51,7 +51,7 @@ jobs:
       - run: uv run --no-sync python scripts/verify_candidate_install.py .cache/ci/dist
       - name: Record tested candidate
         if: inputs.candidate && runner.os == 'Linux'
-        run: python scripts/ci_policy.py package --directory .cache/ci/dist
+        run: uv run --no-sync python scripts/ci_policy.py package --directory .cache/ci/dist
       - name: Store tested candidate
         if: inputs.candidate && runner.os == 'Linux'
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
