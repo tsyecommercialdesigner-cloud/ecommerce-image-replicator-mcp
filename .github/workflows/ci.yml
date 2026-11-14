@@ -1,46 +1,121 @@
 name: CI
 on:
   pull_request:
+    branches: [dev, main]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
   push:
-    branches: [main, dev]
-  workflow_call:
+    branches: [main]
 permissions:
   contents: read
+  actions: read
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: false
 jobs:
-  checks:
-    name: checks (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      mode: ${{ steps.plan.outputs.mode }}
+      candidate: ${{ steps.plan.outputs.candidate }}
+      base: ${{ steps.base.outputs.sha }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Plan by content and provenance
+        id: plan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/ci_policy.py plan
+      - name: Select diff base
+        id: base
+        env:
+          BASE: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: echo "sha=$BASE" >> "$GITHUB_OUTPUT"
+      - name: Forward verified PR candidate
+        if: steps.plan.outputs.mode == 'reuse'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-candidate-${{ github.run_attempt }}
+          path: .cache/ci/reused/*
+          if-no-files-found: error
+          retention-days: 30
+  scoped:
+    needs: plan
+    if: needs.plan.outputs.mode == 'docs' || needs.plan.outputs.mode == 'light'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
         with:
           version: '0.12.23'
           python-version: '3.12'
-          enable-cache: true
-      - run: uv sync --locked
-      - run: uv run --no-sync python scripts/check.py
-      - name: Verify released upgrade and rollback preservation
-        if: runner.os == 'Windows'
-        shell: pwsh
+      - if: needs.plan.outputs.mode == 'light'
+        run: uv sync --locked
+      - name: Changed-scope checks
+        env:
+          MODE: ${{ needs.plan.outputs.mode }}
+          BASE: ${{ needs.plan.outputs.base }}
         run: |
-          git fetch origin refs/tags/v0.1.1:refs/tags/v0.1.1 refs/tags/v0.1.2:refs/tags/v0.1.2 refs/tags/v0.1.3:refs/tags/v0.1.3 refs/tags/v0.1.4:refs/tags/v0.1.4 refs/tags/v0.1.5:refs/tags/v0.1.5 refs/tags/v0.1.6:refs/tags/v0.1.6
-          if ($LASTEXITCODE -ne 0) { throw 'Release tag fetch failed' }
-          uv run --no-sync python scripts/verify_upgrade.py
-          if ($LASTEXITCODE -ne 0) { throw 'Upgrade preservation failed' }
-          uv run --no-sync python scripts/verify_upgrade.py --candidate HEAD --baseline v0.1.6
-          if ($LASTEXITCODE -ne 0) { throw 'Candidate preservation failed' }
-      - run: uv run --no-sync pip-audit
-      - run: uv build --no-sources
-      - name: Preserve test evidence
-        if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+          if [ "$MODE" = docs ]; then
+            python scripts/ci_checks.py docs --base "$BASE"
+          else
+            uv run --no-sync python scripts/ci_checks.py light --base "$BASE"
+          fi
+  full:
+    needs: plan
+    if: needs.plan.outputs.mode == 'full'
+    uses: ./.github/workflows/validate.yml
+    with:
+      candidate: ${{ needs.plan.outputs.candidate == 'true' }}
+      base: ${{ needs.plan.outputs.base }}
+  confirm:
+    needs: [plan, full]
+    if: >-
+      always() && github.event_name == 'push' && needs.plan.result == 'success' &&
+      (needs.plan.outputs.mode == 'reuse' ||
+       (needs.plan.outputs.candidate == 'true' && needs.full.result == 'success'))
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          name: evidence-${{ matrix.os }}
-          path: .cache/validation/
-          retention-days: 14
-          include-hidden-files: true
+          persist-credentials: false
+      - name: Confirm exact tree and payload digests
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python scripts/ci_policy.py confirm
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: verified-release-${{ github.run_attempt }}
+          path: .cache/ci/bundle/*
+          if-no-files-found: error
+          retention-days: 30
+  gate:
+    name: CI gate
+    needs: [plan, scoped, full, confirm]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require selected checks, never mask failed prerequisites
+        env:
+          PLAN: ${{ needs.plan.result }}
+          MODE: ${{ needs.plan.outputs.mode }}
+          SCOPED: ${{ needs.scoped.result }}
+          FULL: ${{ needs.full.result }}
+          CONFIRM: ${{ needs.confirm.result }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          test "$PLAN" = success
+          case "$MODE" in
+            docs|light) test "$SCOPED" = success ;;
+            full) test "$FULL" = success ;;
+            reuse) test "$CONFIRM" = success ;;
+            *) exit 1 ;;
+          esac
+          if [ "$EVENT" = push ] && [ "$MODE" = full ]; then
+            test "$CONFIRM" = success
+          fi
