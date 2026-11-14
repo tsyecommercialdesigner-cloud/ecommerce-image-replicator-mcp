@@ -1,8 +1,15 @@
-# 分阶段 CI/CD 维护改造（已合入 dev，未发布）
+# 分阶段 CI/CD 维护改造（main验收及dev同步通过，未发布）
 
 2026-11-14：ci.yml仅在feature→dev、dev→main PR与main push触发；validate.yml复用完整Windows/Linux验收，测试过的包作为候选上传；main校验PR来源、tree与摘要，一致则复用，否则回退完整验收。release.yml改为只在main的手动workflow_dispatch发布verified-release，禁止标签/Release事件重复CD，不在CD重新构建。恢复草稿只上传缺失且校验一致的附件，既有正式版本拒绝覆盖。
 
-规范、工具和操作步骤及实际验收记录见[CI/CD](CI-CD.md)。PR #21最终提交通过Windows/Linux、安装验证、安全审计及CI gate，Agent评审后合入dev，合并tree一致且无重复dev push CI。main/dev保护已由本机gh配置并读回：要求PR和CI gate、批准人数0，管理员同样受保护。main尚未合入本次工作流，候选复用、main确认及CD仍待后续发布阶段在线验证；本次未发布，v0.1.7标签及附件不变。Beads建单仍缺issue_prefix，原配置保留。以下历史发布与早期标签触发说明仅描述当时实现。
+规范、操作步骤、候选包摘要及实际验收记录见[CI/CD第6节](CI-CD.md#6-main验收产物复用与分支同步实测)。以下提交是2026-11-14验收快照，后续文档回填会产生新SHA。
+
+- [PR #24](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/24)最终dev提交`2f9ad6cfeb13cd008852a9f47534e362eaae3668`通过[完整Windows/Linux CI43552531876](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43552531876)及Agent评审，合入main为`64df686011949ba3f1029778f58d66c46743a693`。首次候选的.gitignore辅助文件问题由[PR #25](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/25)先经feature→dev修复后重验，没有扩大包白名单。
+- [main确认43552873229](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43552873229)实际mode=reuse，confirm和CI gate成功、full跳过。已下载核对verified-release-1：两个包及candidate.json与release-candidate-1逐字节一致，确认文件、SOURCE_COMMIT及SHA256SUMS正确绑定实际main。候选测试提交`526d9ac40d954b722b297b9fca2f44fbd5ba4fb8`与main共享tree：`70beafeee156678140175dd9e445494723988254`。
+- 远端dev最初因PR保护被GH006拒绝快进。用户随后明确授权取消main/dev分支保护，本机gh删除并读回protected=false；这是当前实际设置，先前“要求PR/CI gate、批准人数0”的保护是历史状态。工作流与维护流程仍执行PR、CI及Agent评审。
+- [同步PR #26](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/26)从远端dev创建feature再引入main历史，文件变更0；[CI43553414159](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43553414159)轻检查及CI gate成功，Agent评审后合入dev为`5fc22035f5e01011ddc85fbf0e6e04de78a787a4`。dev/main的SHA不同但完整tree一致，本地分别与远端同步；dev无重复push CI。
+
+本轮没有发布、没有调度Release或触发CD；所有既有标签和附件保持不变。当前候选仍带0.1.7包版本，仅用于CI验证，不覆盖已发布v0.1.7。候选附件保留30天，未来发布需重新核对有效候选、目标、版本及授权；受控CD本身仍未在线执行。真实供应商请求0，密钥、工作区、原任务及成功图未修改。Beads建单仍缺issue_prefix，原配置保留。以下历史发布与早期标签触发说明仅描述当时实现。
 
 # v0.1.7 实际交付
 

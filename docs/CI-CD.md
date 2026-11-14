@@ -1,6 +1,6 @@
 # 分阶段 CI、候选验收与单一发布入口
 
-维护实现日期：2026-11-14。本文对应仓库的工作流与脚本变更；在提交、合入并完成远端运行之前，本地验证不代表新工作流已经在线生效。既有 v0.1.7 及更早发布的目标、标签和附件保持不变。
+维护及远端验收日期：2026-11-14。分阶段工作流已合入main，完整验收、候选产物复用和main确认已实际通过，记录见第6节。受控CD尚未在线执行，本次没有发布。既有 v0.1.7 及更早发布的目标、标签和附件保持不变。
 
 ## 1. 触发与分工
 
@@ -10,7 +10,7 @@
 | 合入 dev / 推送 feature | 无 push 工作流 | 不重复 PR CI，不执行 CD |
 | dev → main 发布 PR | ci.yml，pull_request | 完整 Windows/Linux 验收；Linux 保存刚完成安装验证的候选产物 |
 | 合入 main | ci.yml，push | 查关联已合并 dev PR，校验候选来源/摘要与完整 Git tree；相同则复用，缺失/不符则完整验收并生成新候选 |
-| 发布后文档回填 | dev → main PR，预先加 `delivery-docs` 标签 | 只有分类确实为纯文档才轻检查；合入 main 同样轻检查，不生成新发行物或发布 |
+| 验收或发布后文档回填 | dev → main PR，预先加 `delivery-docs` 标签 | 只有分类确实为纯文档才轻检查；合入 main 同样轻检查，不生成新发行物或发布 |
 | 正式发布 | release.yml，workflow_dispatch | 只能选 main；输入 tag 与 main_run_id，使用 release 环境及单一发布并发组，发布已确认的原字节 |
 
 不使用标签 push、Release 事件、workflow_run 或 pull_request_target 自动发布。Reusable `validate.yml` 只有 workflow_call，不构成第二个发布入口。PR 的 token 只读，不接触供应商密钥；只有正式发布 job 获得 contents:write。
@@ -88,14 +88,53 @@ uv run --no-sync python scripts/verify_candidate_install.py .cache/ci-local-dist
 
 测试覆盖分类、PR方向、文档回填、相同tree复用、候选缺失回退、来源/摘要/确认篡改、危险归档、已发布版本保护和草稿部分上传后的续传。GitHub API与发布操作在离线测试中使用替身，不实际创建标签/草稿/Release。
 
-新稳定检查名为CI gate。迁移远端保护时，应先完成新工作流的实际PR运行，再由获授权的维护者配置CI gate，保留PR要求而不强制独立人工批准。
+固定检查名为CI gate。是否启用远端保护必须核对实际设置；当前状态见第6节。即使远端不强制保护，本项目仍按用户授权执行PR、对应CI及Agent评审，不把取消保护当作跳过验收或直接开发main的授权。
 
 2026-11-14远端验收：[PR #21](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/21)的最终提交`7facebadda1fc6cd5ec21320beb5aa92c5adfb61`通过[Windows/Linux CI及CI gate](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43549891351)，已记录对应提交的Agent评审并合入dev（`fff518420d2389152b1b66f66fcaf7b62499bfba`）。合并tree与受验提交一致，dev未重复触发push CI。前两次失败实际使gate失败；修复了版本化文档链接检查、Windows只读Git测试文件清理及opentelemetry-api安全补丁，没有跳过门禁。
 
-本机gh已确认当前账号有仓库admin权限；先前403属于GitHub集成通道，不代表gh无权限。main/dev分支保护均已配置并读回：要求PR，要求GitHub Actions（app_id 15368）的CI gate，批准人数0，不要求CODEOWNER或最后推送者以外的人批准，管理员也受保护，禁止强推与删除。strict=false，不因基线推进机械强制更新分支；合并内容仍按本流程核对。此次仅合入dev，main仍为`b066d89680f5f4745702a48380a761631be808d1`；候选跨工作流复用、main确认和受控CD尚未在线执行，需后续dev→main时验证。未触发发布，既有v0.1.7标签及附件保持不变。
+历史保护记录：本机gh确认当前账号有仓库admin权限；先前403属于GitHub集成通道。当时main/dev曾要求PR及GitHub Actions（app_id 15368）的CI gate，批准人数0，管理员也受保护。此配置随后按用户明确授权取消，不能将本段历史配置视为当前保护状态。
 
 本地质量与安装验证不等于远端GitHub事件/权限验证；合入时仍需实际核对PR、main和手动发布的权限、artifact下载及保护环境。参考GitHub官方的[可复用工作流](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)、[Artifact接口](https://docs.github.com/en/rest/actions/artifacts)与[触发事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
 
-[PR #22](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/22)的纯文档路径暴露了空依赖缓存导致setup-uv结束步骤失败的问题，CI gate正确阻止合并。修复后，docs模式不运行setup-uv或安装依赖，仅使用系统Python标准库；light模式仍安装锁定依赖。最终提交`e350bc2750133cef7536c4bb4a52de751c2a45a6`通过[完整Windows/Linux CI](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43550543660)及Agent评审，并在已启用的PR/CI保护下正常合入dev，没有使用管理员绕过。纯文档还须核对scoped成功、full跳过与CI gate成功。
+[PR #22](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/22)的纯文档路径暴露了空依赖缓存导致setup-uv结束步骤失败的问题，CI gate正确阻止合并。修复后，docs模式不运行setup-uv或安装依赖，仅使用系统Python标准库；light模式仍安装锁定依赖。最终提交`e350bc2750133cef7536c4bb4a52de751c2a45a6`通过[完整Windows/Linux CI](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43550543660)及Agent评审，并在当时已启用的PR/CI保护下正常合入dev。后续[PR #23轻检查](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43550888023)实际确认scoped和CI gate成功、full跳过。
 
-2026-11-14本地记录：完整质量门禁309通过、1项平台跳过，ruff/mypy/秘密扫描通过；随后补充的真实Git内容树回归随CI专项54项一起通过。actionlint1.7.7检查通过（未启用额外shellcheck/pyflakes工具），全库文档解析通过，wheel/sdist隔离锁定依赖安装及stdio通过。v0.1.6→当前HEAD→v0.1.6旧任务保留验证通过，假提交总数保持2，真实供应商请求0；其HEAD是当前已提交基线，不将尚未提交的流水线改动声称为已完成远端候选验收。证据在本地.cache/ci-quality-final.log、ci-install.log、ci-upgrade-check.log与.cache/validation/；临时安装环境已删除。
+2026-11-14早期本地验证快照：完整质量门禁309通过、1项平台跳过，ruff/mypy/秘密扫描通过；随后补充的真实Git内容树回归随CI专项54项一起通过。actionlint1.7.7检查通过（未启用额外shellcheck/pyflakes工具），全库文档解析、wheel/sdist隔离安装及stdio通过。当时基线的v0.1.6升级/回滚旧任务保留验证通过，假提交总数保持2，真实供应商请求0；这些本地结果不替代第6节后续实际远端验收。证据在本地.cache/ci-quality-final.log、ci-install.log、ci-upgrade-check.log与.cache/validation/；临时安装环境已删除。
+
+## 6. main验收、产物复用与分支同步实测
+
+以下提交标识是2026-11-14本轮操作的验收快照，后续文档合并会产生新的分支提交。
+
+### 完整验收与候选
+
+[PR #24](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/24)最终dev提交为`2f9ad6cfeb13cd008852a9f47534e362eaae3668`。[完整验收43552531876](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43552531876)的Windows/Linux质量、文档、依赖审计、构建、wheel/sdist隔离安装及stdio检查通过，Windows升级/回滚保留验证通过，CI gate成功；对应提交已完成Agent评审。
+
+首次候选记录因构建辅助文件.gitignore混入清单而失败，失败运行没有可发布候选。[修复PR #25](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/25)先经feature→dev合入，再让PR #24针对新head完整重验；候选白名单没有放宽。候选记录使用受验Python环境，未借用系统默认Python版本。
+
+真实候选release-candidate-1包含两个包和candidate.json；已下载并核验归档摘要、文件白名单、PR/head/run/attempt、锁文件摘要及环境：Python：3.12.15，uv：0.12.23。候选source_commit为测试合并提交`526d9ac40d954b722b297b9fca2f44fbd5ba4fb8`，完整tree为`70beafeee156678140175dd9e445494723988254`。Linux锁摘要使用Git中的LF字节，不能拿Windows本地CRLF检出字节直接比较。
+
+| 候选文件 | SHA256 |
+|---|---|
+| ecommerce_image_replicator_mcp-0.1.7-py3-none-any.whl | `5d0c658be2113582f6e8b9f2a2a6e7160adaccbeaffa773dbcfcb22c6233081a` |
+| ecommerce_image_replicator_mcp-0.1.7.tar.gz | `831a3040b4b316dfdde50d07dbdf64be1425b59c7ea82fc15542d859e39f01cd` |
+
+### main按差异确认及原字节复用
+
+PR #24正常合入main提交`64df686011949ba3f1029778f58d66c46743a693`。[main确认43552873229](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43552873229)的plan实际输出mode=reuse；confirm与CI gate成功，full及scoped跳过，未重复构建或完整测试。
+
+下载verified-release-1后再次校验：wheel、sdist及candidate.json与PR候选逐字节一致；confirmation.json绑定实际main提交、tree、main运行ID/attempt及候选清单摘要；SOURCE_COMMIT与SHA256SUMS一致。此结论基于实际文件和来源校验，不以缓存命中或跳过任务作为复用证据。
+
+这些0.1.7版本文件仅为CI候选，不是新的正式发布，也不替换原v0.1.7附件。产物保留期为30天，过期后不得把本段历史验收当作仍可下载或可直接发布的证明；未来发布必须重新核对目标、版本、候选可用性和授权。
+
+### 取消保护与dev同步
+
+最初远端dev快进被GH006拒绝，原因是要求通过PR修改。随后用户明确授权取消分支保护：本机gh删除main/dev保护并读回，两分支protected=false。当前远端不强制PR/CI或批准人数；工作流与人工执行流程仍遵循feature→dev→main和Agent评审，没有将独立他人批准设为前置条件。
+
+[同步PR #26](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/26)的feature分支从远端dev创建，再快进到已验收main；changedFiles=0，仅同步历史。[同步CI43553414159](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43553414159)的scoped及CI gate成功，full跳过，Agent评审后正常合并。
+
+同步后dev为`5fc22035f5e01011ddc85fbf0e6e04de78a787a4`，main为`64df686011949ba3f1029778f58d66c46743a693`，完整tree均为`70beafeee156678140175dd9e445494723988254`。本地分别与对应远端分支一致；允许SHA不同但文件内容一致。dev合入没有重复push CI。
+
+### 未发布范围与证据
+
+本轮未调度Release工作流、未触发CD、未创建或更新正式发布/草稿；操作前后全部标签、Release及附件标识和摘要一致。真实供应商请求为0；既有密钥、业务工作区、任务记录、成功图及无关本地文件未修改。实际受控CD仍未在线验证，不因main确认成功而声称发布已验收。
+
+必要本地证据保存在被忽略的.cache中：pr24-candidate-validation.json、pr24-reuse-validation.json、main-rollout-delivery-result.json、dev-sync-delivery-result.json。可共享的长期追溯入口为上述GitHub PR、Agent评审与Actions运行；本地证据不随Git交付，Actions附件遵循保留期限。
