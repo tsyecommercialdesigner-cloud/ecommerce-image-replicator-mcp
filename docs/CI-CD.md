@@ -35,6 +35,8 @@ API文档引用的2026-10-20外部历史验证归档不随仓库交付。文档�
 
 逻辑候选名为 `release-candidate-<run_attempt>`，保留30天。载荷包含wheel、sdist、candidate.json。清单记录仓库、PR编号/head SHA、实际测试checkout SHA/tree、run ID/attempt、版本、Python/uv、锁摘要和两包SHA256。
 
+构建发行包时禁用uv自动生成输出目录的.gitignore，防止构建辅助文件混入候选清单；候选仍严格只接受两个发行包与candidate.json，不能通过扩大白名单掩盖额外文件。此问题由首次dev→main候选记录步骤实际检出，失败运行未产生可发布候选。
+
 main查找本次合并的同仓库dev PR及其成功CI，只下载对应head和attempt的候选；核对工作流路径、运行结论、归档SHA256、扁平文件白名单、包摘要、PR身份及完整tree。拒绝过期/重复条目、额外文件、符号链接、路径穿越和篡改。
 
 GitHub API权限或服务故障若连关联PR/运行来源也无法读取，则直接令确认失败，交操作者处理；不把权限拒绝伪装成验证通过或修改凭据绕过。已定位候选的缺失、格式/摘要问题可回退完整验收，不能复用损坏的下载内容。
