@@ -6,6 +6,8 @@
 
 ## 发布状态
 
+维护分支的分阶段CI/CD与候选发布操作见[开发与发布流程](docs/CI-CD.md)：feature PR按改动检查，dev无重复push CI；发布PR完整验收，main按内容复验；正式发布仅从main手动调度Release，复用已验证产物。该工作流改造需经后续提交/远端验收生效，不改变下方既有发布事实。
+
 v0.1.7 已于 2026-10-28 19:11（Asia/Shanghai）正式发布，目标 `88ef28e76bdcd2cf7f3738e25e157ff7841a6cb3`。
 提供12工具/1资源/1提示：新增recover_postprocess，下载成功的v2图可沿原run_id纯本地恢复，保留receipt、raw、成功图和显式验收；画布比例偏差不超过1%时补偿并恢复原图精确宽高，明显偏差明确报错。
 默认保留代理并兼容NO_PROXY合法方括号IPv6；--proxy-mode direct显式关闭代理而保留CA环境及TLS校验，不改全局环境，不自动降级直连。

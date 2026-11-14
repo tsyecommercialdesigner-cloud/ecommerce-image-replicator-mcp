@@ -120,9 +120,10 @@ v1 graph、操作键和 checkpoints.sqlite 保持；逐图v2使用 checkpoints-v
 旧v2已知任务若上游报FAILURE，也不能再自动POST；需要按新目标准备任务。
 原有 accepted 记录保留为历史依据，reference_alignment_verified=false，不能追认为复刻通过。
 
-测试用例见 [A12](../brief/cases/A12-reference-fidelity.md) 与
-[A13](../brief/cases/A13-product-brand-boundary.md)；当前创意容差与全套输入见
-[A15](../brief/cases/A15-product-theme-suite.md)，实际验证记录见 [VALIDATION.md](VALIDATION.md)。
+历史本地测试用例为 `brief/cases/A12-reference-fidelity.md`、
+`brief/cases/A13-product-brand-boundary.md` 与
+`brief/cases/A15-product-theme-suite.md`；这些业务输入不随Git交付，不能作为可下载链接。
+可取得的验证记录见 [VALIDATION.md](VALIDATION.md)，消费端不需要这些历史输入才能使用MCP。
 
 ### 指定文案与文字主题的提交前解析（plan version 6）
 
