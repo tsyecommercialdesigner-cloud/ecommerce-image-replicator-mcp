@@ -86,7 +86,11 @@ uv run --no-sync python scripts/verify_candidate_install.py .cache/ci-local-dist
 
 测试覆盖分类、PR方向、文档回填、相同tree复用、候选缺失回退、来源/摘要/确认篡改、危险归档、已发布版本保护和草稿部分上传后的续传。GitHub API与发布操作在离线测试中使用替身，不实际创建标签/草稿/Release。
 
-新稳定检查名为CI gate。迁移远端ruleset时，应先完成新工作流的实际PR运行，再由获授权的维护者将旧checks矩阵门禁替换为CI gate，保留PR要求而不强制独立人工批准。当前GitHub集成读取branch protection返回403，无法核实/更改远端保护；未推送时也不能宣称远端新Windows/Linux流水线已通过。
+新稳定检查名为CI gate。迁移远端保护时，应先完成新工作流的实际PR运行，再由获授权的维护者配置CI gate，保留PR要求而不强制独立人工批准。
+
+2026-11-14远端验收：[PR #21](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/21)的最终提交`7facebadda1fc6cd5ec21320beb5aa92c5adfb61`通过[Windows/Linux CI及CI gate](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43549891351)，已记录对应提交的Agent评审并合入dev（`fff518420d2389152b1b66f66fcaf7b62499bfba`）。合并tree与受验提交一致，dev未重复触发push CI。前两次失败实际使gate失败；修复了版本化文档链接检查、Windows只读Git测试文件清理及opentelemetry-api安全补丁，没有跳过门禁。
+
+本机gh已确认当前账号有仓库admin权限；先前403属于GitHub集成通道，不代表gh无权限。main/dev分支保护均已配置并读回：要求PR，要求GitHub Actions（app_id 15368）的CI gate，批准人数0，不要求CODEOWNER或最后推送者以外的人批准，管理员也受保护，禁止强推与删除。strict=false，不因基线推进机械强制更新分支；合并内容仍按本流程核对。此次仅合入dev，main仍为`b066d89680f5f4745702a48380a761631be808d1`；候选跨工作流复用、main确认和受控CD尚未在线执行，需后续dev→main时验证。未触发发布，既有v0.1.7标签及附件保持不变。
 
 本地质量与安装验证不等于远端GitHub事件/权限验证；合入时仍需实际核对PR、main和手动发布的权限、artifact下载及保护环境。参考GitHub官方的[可复用工作流](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)、[Artifact接口](https://docs.github.com/en/rest/actions/artifacts)与[触发事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
 

@@ -1,8 +1,8 @@
-# 分阶段 CI/CD 维护改造（待提交及远端验收）
+# 分阶段 CI/CD 维护改造（已合入 dev，未发布）
 
 2026-11-14：ci.yml仅在feature→dev、dev→main PR与main push触发；validate.yml复用完整Windows/Linux验收，测试过的包作为候选上传；main校验PR来源、tree与摘要，一致则复用，否则回退完整验收。release.yml改为只在main的手动workflow_dispatch发布verified-release，禁止标签/Release事件重复CD，不在CD重新构建。恢复草稿只上传缺失且校验一致的附件，既有正式版本拒绝覆盖。
 
-规范、工具和操作步骤见[CI/CD](CI-CD.md)。门禁拟迁移为CI gate；当前连接读取远端保护返回403，未改远端保护、未提交推送或触发真实发布。Beads建单仍缺issue_prefix，原配置保留。以下历史发布与早期标签触发说明仅描述当时实现。
+规范、工具和操作步骤及实际验收记录见[CI/CD](CI-CD.md)。PR #21最终提交通过Windows/Linux、安装验证、安全审计及CI gate，Agent评审后合入dev，合并tree一致且无重复dev push CI。main/dev保护已由本机gh配置并读回：要求PR和CI gate、批准人数0，管理员同样受保护。main尚未合入本次工作流，候选复用、main确认及CD仍待后续发布阶段在线验证；本次未发布，v0.1.7标签及附件不变。Beads建单仍缺issue_prefix，原配置保留。以下历史发布与早期标签触发说明仅描述当时实现。
 
 # v0.1.7 实际交付
 
