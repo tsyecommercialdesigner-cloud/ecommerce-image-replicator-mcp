@@ -22,6 +22,8 @@
 `scripts/ci_policy.py` 负责分类及阶段判断，`scripts/ci_checks.py` 执行轻检查：
 
 - docs：Markdown链接、代码围栏、JSON示例、适用JSON/TOML配置解析、diff格式及秘密扫描。检查已删除文件的引用时，仍以当前存在内容为准；完整发布验收会解析所有版本化文档。
+
+本地链接还必须出现在Git交付清单中，避免开发机上存在但干净checkout缺失的私有brief掩盖断链。测试清理仅限工作区.cache内的临时目录，Windows Git只读对象可清除只读位后重试；真实ACL/占用失败仍报错，不将清理失败吞掉。
 - light：代码/测试改动运行变更Python文件的ruff格式与lint、src类型检查、基础契约/stdio测试及相关模块测试。network、diagnostics、images有明确映射；共享控制流、测试fixtures或无法确定依赖影响时保守运行完整测试集，但不因此重复构建/审计/发布。
 - full：脚本、工作流、锁、依赖/构建配置、未知文件类型及安装/Host行为改动，走完整验收。文档中修改安装命令、指定Shell/Python代码或MCP配置也升级为full。`delivery-docs` 标签不能把代码或安装命令改动降级。
 

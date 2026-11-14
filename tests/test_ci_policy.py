@@ -368,6 +368,42 @@ def test_document_failures(tmp_path, monkeypatch, content):
         checks.documents(["example.md"])
 
 
+def test_local_ignored_file_cannot_hide_a_clean_checkout_link_failure(tmp_path, monkeypatch):
+    checks_spec = importlib.util.spec_from_file_location("ci_checks", ROOT / "scripts/ci_checks.py")
+    checks = importlib.util.module_from_spec(checks_spec)
+    checks_spec.loader.exec_module(checks)
+    monkeypatch.setattr(checks, "ROOT", tmp_path)
+    monkeypatch.setattr(checks, "command", lambda *a: None)
+    (tmp_path / "example.md").write_text("[private](private.md)")
+    (tmp_path / "private.md").write_text("Local business data")
+    with pytest.raises(ValueError, match="unversioned"):
+        checks.documents(["example.md"], {"example.md"})
+    checks.documents(["example.md"], {"example.md", "private.md"})
+
+
+def test_windows_readonly_test_cleanup_and_scope_guard(tmp_path, monkeypatch):
+    import stat
+
+    check_spec = importlib.util.spec_from_file_location("quality_check", ROOT / "scripts/check.py")
+    check = importlib.util.module_from_spec(check_spec)
+    check_spec.loader.exec_module(check)
+    monkeypatch.setattr(check, "ROOT", tmp_path)
+    directory = tmp_path / ".cache/check-tests"
+    directory.mkdir(parents=True)
+    obj = directory / "git-object"
+    obj.write_bytes(b"fixture")
+    obj.chmod(stat.S_IREAD)
+    check.remove_temporary(directory)
+    assert not directory.exists()
+    outside = tmp_path / "business"
+    outside.mkdir()
+    with pytest.raises(ValueError):
+        check.remove_temporary(outside)
+    with pytest.raises(ValueError):
+        check.remove_temporary(tmp_path / ".cache")
+    assert outside.exists()
+
+
 def test_real_git_tree_reuse_across_distinct_commits(bundle, tmp_path, monkeypatch):
     repo = tmp_path / "git-fixture"
     repo.mkdir()

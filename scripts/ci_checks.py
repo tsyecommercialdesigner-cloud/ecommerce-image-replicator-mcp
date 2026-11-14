@@ -64,7 +64,7 @@ def command(*args):
     subprocess.run(args, cwd=ROOT, check=True)
 
 
-def documents(paths):
+def documents(paths, versioned=None):
     for name in paths:
         path = ROOT / name
         if not path.is_file():
@@ -86,8 +86,21 @@ def documents(paths):
                 if target in HISTORICAL.get(name, set()):
                     print(f"Historical external reference (not checked locally): {name}: {target}")
                     continue
-                if "<" not in target and not (path.parent / target).exists():
-                    raise ValueError(f"Broken local link in {name}: {target}")
+                if "<" not in target:
+                    destination = path.parent / target
+                    available = destination.exists()
+                    if versioned is not None:
+                        try:
+                            relative = destination.resolve().relative_to(ROOT.resolve()).as_posix()
+                        except ValueError:
+                            available = False
+                        else:
+                            available = available and (
+                                relative in versioned
+                                or any(p.startswith(relative.rstrip("/") + "/") for p in versioned)
+                            )
+                    if not available:
+                        raise ValueError(f"Broken or unversioned local link in {name}: {target}")
     command(sys.executable, "scripts/check_secrets.py")
 
 
@@ -114,16 +127,15 @@ def main():
     parser.add_argument("--all", action="store_true", help="Parse all versionable documentation")
     args = parser.parse_args()
     paths = changed(args.base)
+    versioned = set(
+        subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
+    )
     doc_paths = paths
     if args.all:
         doc_paths = (
-            subprocess.check_output(
-                ["git", "ls-files", "--cached", "--others", "--exclude-standard"], cwd=ROOT
-            )
-            .decode()
-            .splitlines()
+            subprocess.check_output(["git", "ls-files", "--cached"], cwd=ROOT).decode().splitlines()
         )
-    documents([p for p in doc_paths if Path(p).suffix in {".md", ".json", ".toml"}])
+    documents([p for p in doc_paths if Path(p).suffix in {".md", ".json", ".toml"}], versioned)
     command("git", "diff", "--check", args.base, "HEAD")
     if args.mode == "light":
         python = [p for p in paths if p.endswith(".py") and (ROOT / p).is_file()]
