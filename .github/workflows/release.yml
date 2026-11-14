@@ -1,42 +1,37 @@
 name: Release
 on:
-  push:
-    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Stable version tag matching the validated package
+        required: true
+        type: string
+      main_run_id:
+        description: Successful CI run on main containing verified-release
+        required: true
+        type: string
 permissions:
   contents: read
+concurrency:
+  group: release-publication
+  cancel-in-progress: false
 jobs:
-  validate:
-    uses: ./.github/workflows/ci.yml
   publish:
-    needs: validate
+    if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     environment: release
     permissions:
       contents: write
+      actions: read
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
         with:
-          version: '0.12.23'
-          python-version: '3.12'
-      - run: uv sync --locked --no-dev
-      - name: Check tag matches project version
-        run: |
-          python - <<'PY'
-          import os, tomllib
-          from pathlib import Path
-          version = tomllib.loads(Path('pyproject.toml').read_text())['project']['version']
-          assert os.environ['GITHUB_REF_NAME'] == 'v' + version
-          PY
-      - run: uv build --no-sources
-      - name: Checksums and source provenance
-        run: |
-          sha256sum dist/* > SHA256SUMS
-          git rev-parse HEAD > SOURCE_COMMIT
-      - name: Create release draft for operator verification
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Publish verified bytes once, preserving existing tags and assets
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          test -f "docs/releases/$GITHUB_REF_NAME.md"
-          gh release create "$GITHUB_REF_NAME" dist/* SHA256SUMS SOURCE_COMMIT --verify-tag --draft --title "$GITHUB_REF_NAME" --notes-file "docs/releases/$GITHUB_REF_NAME.md"
+          RELEASE_TAG: ${{ inputs.tag }}
+          MAIN_RUN_ID: ${{ inputs.main_run_id }}
+        run: python scripts/ci_policy.py publish --tag "$RELEASE_TAG" --run-id "$MAIN_RUN_ID"

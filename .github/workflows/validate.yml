@@ -1,0 +1,70 @@
+name: Release acceptance
+on:
+  workflow_call:
+    inputs:
+      candidate:
+        type: boolean
+        required: true
+      base:
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  checks:
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@d0d8abe699bfb85fec6de9f7adb5ae17292296ff
+        with:
+          version: '0.12.23'
+          python-version: '3.12'
+      - run: uv sync --locked
+      - run: uv run --no-sync python scripts/check.py
+      - name: Validate workflow syntax
+        if: runner.os == 'Linux'
+        run: go run github.com/rhysd/actionlint/cmd/actionlint@v1.7.7 -shellcheck= -pyflakes=
+      - name: Documentation, configuration and examples
+        shell: bash
+        env:
+          BASE: ${{ inputs.base }}
+        run: |
+          uv run --no-sync python scripts/ci_checks.py docs --all --base "$BASE"
+      - name: Upgrade and rollback preservation
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          uv run --no-sync python scripts/verify_upgrade.py
+          if ($LASTEXITCODE -ne 0) { throw 'Released upgrade preservation failed' }
+          uv run --no-sync python scripts/verify_upgrade.py --candidate HEAD --baseline v0.1.6
+          if ($LASTEXITCODE -ne 0) { throw 'Candidate preservation failed' }
+      - run: uv run --no-sync pip-audit
+      - run: uv build --no-sources --no-create-gitignore --out-dir .cache/ci/dist
+      - run: uv run --no-sync python scripts/verify_candidate_install.py .cache/ci/dist
+      - name: Record tested candidate
+        if: inputs.candidate && runner.os == 'Linux'
+        run: uv run --no-sync python scripts/ci_policy.py package --directory .cache/ci/dist
+      - name: Store tested candidate
+        if: inputs.candidate && runner.os == 'Linux'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: release-candidate-${{ github.run_attempt }}
+          path: .cache/ci/dist/*
+          if-no-files-found: error
+          retention-days: 30
+      - name: Preserve validation evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: evidence-${{ matrix.os }}
+          path: .cache/validation/
+          retention-days: 14
+          include-hidden-files: true
