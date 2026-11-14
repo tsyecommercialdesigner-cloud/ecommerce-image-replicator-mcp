@@ -94,4 +94,6 @@ uv run --no-sync python scripts/verify_candidate_install.py .cache/ci-local-dist
 
 本地质量与安装验证不等于远端GitHub事件/权限验证；合入时仍需实际核对PR、main和手动发布的权限、artifact下载及保护环境。参考GitHub官方的[可复用工作流](https://docs.github.com/en/actions/how-tos/reuse-automations/reuse-workflows)、[Artifact接口](https://docs.github.com/en/rest/actions/artifacts)与[触发事件](https://docs.github.com/en/actions/reference/workflows-and-actions/events-that-trigger-workflows)。
 
+[PR #22](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/pull/22)的纯文档路径暴露了空依赖缓存导致setup-uv结束步骤失败的问题，CI gate正确阻止合并。修复后，docs模式不运行setup-uv或安装依赖，仅使用系统Python标准库；light模式仍安装锁定依赖。最终提交`e350bc2750133cef7536c4bb4a52de751c2a45a6`通过[完整Windows/Linux CI](https://github.com/tsyecommercialdesigner-cloud/ecommerce-image-replicator-mcp/actions/runs/43550543660)及Agent评审，并在已启用的PR/CI保护下正常合入dev，没有使用管理员绕过。纯文档还须核对scoped成功、full跳过与CI gate成功。
+
 2026-11-14本地记录：完整质量门禁309通过、1项平台跳过，ruff/mypy/秘密扫描通过；随后补充的真实Git内容树回归随CI专项54项一起通过。actionlint1.7.7检查通过（未启用额外shellcheck/pyflakes工具），全库文档解析通过，wheel/sdist隔离锁定依赖安装及stdio通过。v0.1.6→当前HEAD→v0.1.6旧任务保留验证通过，假提交总数保持2，真实供应商请求0；其HEAD是当前已提交基线，不将尚未提交的流水线改动声称为已完成远端候选验收。证据在本地.cache/ci-quality-final.log、ci-install.log、ci-upgrade-check.log与.cache/validation/；临时安装环境已删除。
